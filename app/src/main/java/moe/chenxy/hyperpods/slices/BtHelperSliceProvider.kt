@@ -6,9 +6,15 @@
 package moe.chenxy.hyperpods.slices
 
 import android.R
-import android.annotation.ColorInt
+import android.app.slice.Slice
+import android.app.slice.SliceProvider
 import android.content.Context
+import android.content.SharedPreferences
+import android.content.res.TypedArray
 import android.net.Uri
+import androidx.annotation.ColorInt
+import androidx.slice.builders.ListBuilder
+import moe.chenxy.hyperpods.Constants
 
 class BtHelperSliceProvider : SliceProvider() {
     private var mContext: Context? = null
@@ -38,15 +44,15 @@ class BtHelperSliceProvider : SliceProvider() {
         } catch (e: NullPointerException) {
         }
         val ONEPOD_TITLE = mContext!!.getString(R.string.onepod_mode_title)
-        val onePodModeEnabled: Boolean = mSharedPrefs.getBoolean(Constants.KEY_ONEPOD_MODE, false)
+        val onePodModeEnabled: Boolean = mSharedPrefs!!.getBoolean(Constants.KEY_ONEPOD_MODE, false)
         val AUTO_PLAY_TITLE = mContext!!.getString(R.string.auto_play_title)
-        val autoPlayEnabled: Boolean = mSharedPrefs.getBoolean(Constants.KEY_AUTO_PLAY, false)
+        val autoPlayEnabled: Boolean = mSharedPrefs!!.getBoolean(Constants.KEY_AUTO_PLAY, false)
         val AUTO_PAUSE_TITLE = mContext!!.getString(R.string.auto_pause_title)
-        val autoPauseEnabled: Boolean = mSharedPrefs.getBoolean(Constants.KEY_AUTO_PAUSE, false)
+        val autoPauseEnabled: Boolean = mSharedPrefs!!.getBoolean(Constants.KEY_AUTO_PAUSE, false)
         val LOW_LATENCY_TITLE = mContext!!.getString(R.string.low_latency_audio_title)
         val LOW_LATENCY_SUBTITLE = mContext!!.getString(R.string.low_latency_audio_slice_subtitle)
         val lowLatencyEnabled: Boolean =
-            mSharedPrefs.getBoolean(Constants.KEY_LOW_LATENCY_AUDIO, false)
+            mSharedPrefs!!.getBoolean(Constants.KEY_LOW_LATENCY_AUDIO, false)
         val listBuilder = ListBuilder(mContext, sliceUri, INFINITY)
         listBuilder.addRow(
             SliceCreator(

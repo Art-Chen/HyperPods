@@ -11,5 +11,5 @@ interface IPods {
     val isSingle: Boolean
     val isDisconnected: Boolean
     val lowBattThreshold: Int
-    val menufacturer: String?
+    val manufacturer: String?
 }

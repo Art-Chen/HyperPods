@@ -6,10 +6,18 @@
  */
 package moe.chenxy.hyperpods.pods
 
+import android.bluetooth.BluetoothDevice
+
 class Pod(val status: Int, val isCharging: Boolean, val isInEar: Boolean) {
+    val BATTERY_LEVEL_UNKNOWN = -1
 
     fun parseStatus(): Int {
-        return if (status == MAX_CONNECTED_STATUS) 100 else if (status < MAX_CONNECTED_STATUS) status * 10 + 5 else BluetoothDevice.BATTERY_LEVEL_UNKNOWN
+        return if (status == MAX_CONNECTED_STATUS)
+            100
+        else if (status < MAX_CONNECTED_STATUS)
+            status * 10 + 5
+        else
+            BATTERY_LEVEL_UNKNOWN
     }
 
     val isConnected: Boolean

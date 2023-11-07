@@ -9,10 +9,52 @@
 package moe.chenxy.hyperpods.pods
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Service
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
+import android.bluetooth.le.BluetoothLeScanner
+import android.bluetooth.le.ScanSettings
+import android.content.BroadcastReceiver
+import android.content.ContentResolver
 import android.content.Context
+import android.content.Intent
+import android.content.SharedPreferences
 import android.content.res.Resources
 import android.net.Uri
+import android.os.IBinder
+import android.os.UserHandle
+import moe.chenxy.hyperpods.Constants
+import moe.chenxy.hyperpods.pods.models.IPods
+import moe.chenxy.hyperpods.pods.models.RegularPods
+import moe.chenxy.hyperpods.pods.models.SinglePods
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.DEVICE_TYPE_UNTETHERED_HEADSET
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.METADATA_COMPANION_APP
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.METADATA_DEVICE_TYPE
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.METADATA_ENHANCED_SETTINGS_UI_URI
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.METADATA_MAIN_CHARGING
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.METADATA_MAIN_ICON
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.METADATA_MAIN_LOW_BATTERY_THRESHOLD
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.METADATA_MANUFACTURER_NAME
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.METADATA_MODEL_NAME
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.METADATA_SOFTWARE_VERSION
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.METADATA_UNTETHERED_CASE_BATTERY
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.METADATA_UNTETHERED_CASE_CHARGING
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.METADATA_UNTETHERED_CASE_ICON
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.METADATA_UNTETHERED_CASE_LOW_BATTERY_THRESHOLD
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.METADATA_UNTETHERED_LEFT_BATTERY
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.METADATA_UNTETHERED_LEFT_CHARGING
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.METADATA_UNTETHERED_LEFT_ICON
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.METADATA_UNTETHERED_LEFT_LOW_BATTERY_THRESHOLD
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.METADATA_UNTETHERED_RIGHT_BATTERY
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.METADATA_UNTETHERED_RIGHT_CHARGING
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.METADATA_UNTETHERED_RIGHT_ICON
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.METADATA_UNTETHERED_RIGHT_LOW_BATTERY_THRESHOLD
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.getMetadata
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.setLowLatencyAudioAllowed
+import moe.chenxy.hyperpods.utils.BluetoothDeviceWrapper.setMetadata
+import moe.chenxy.hyperpods.utils.MediaControl
 import java.util.Locale
 
 /**
@@ -35,7 +77,7 @@ class PodsService : Service() {
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         try {
-            val device: BluetoothDevice =
+            val device: BluetoothDevice? =
                 intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
             if (device != null) {
                 mCurrentDevice = device
@@ -133,7 +175,7 @@ class PodsService : Service() {
         }
         if (mediaControl == null) return
         val airpods: IPods? = status.airpods
-        val single: Boolean = airpods.isSingle()
+        val single: Boolean = airpods?.isSingle ?: false
         var currentWorn = false
         currentWorn = if (!single) {
             val regularPods: RegularPods = airpods as RegularPods
@@ -144,15 +186,15 @@ class PodsService : Service() {
             }
         } else {
             val singlePods: SinglePods = airpods as SinglePods
-            singlePods.isInEar()
+            singlePods.isInEar
         }
-        if (!previousWorn && currentWorn && !mediaControl.isPlaying()) {
+        if (!previousWorn && currentWorn && !mediaControl!!.isPlaying) {
             if (autoPlayPause || autoPlay) {
-                mediaControl.sendPlay()
+                mediaControl!!.sendPlay()
             }
-        } else if (previousWorn && !currentWorn && mediaControl.isPlaying()) {
+        } else if (previousWorn && !currentWorn && mediaControl!!.isPlaying) {
             if (autoPlayPause || autoPause) {
-                mediaControl.sendPause()
+                mediaControl!!.sendPause()
             }
         }
         previousWorn = currentWorn
@@ -173,33 +215,33 @@ class PodsService : Service() {
     }
 
     private fun setMetadata(device: BluetoothDevice?, key: Int, value: ByteArray): Boolean {
-        return if (device.getMetadata(key) == null) {
+        return if (device.getMetadata(key) == null)
             device.setMetadata(key, value)
-        } else true
+        else true
     }
 
     // Set metadata (icon, battery, charging status, etc.) for current device
     // and send broadcast that device status has changed
     private fun updatePodsStatus(status: PodsStatus, device: BluetoothDevice?) {
         val airpods: IPods? = status.airpods
-        val single: Boolean = airpods.isSingle()
+        val single: Boolean = airpods.isSingle
         isSingleDevice = single
         var batteryUnified = 0
         var chargingMain = false
         if (!isMetaDataSet) {
             isSliceSet = setMetadata(
                 device,
-                device.METADATA_COMPANION_APP,
-                Constants.AUTHORITY_BTHELPER.getBytes()
+                METADATA_COMPANION_APP,
+                Constants.AUTHORITY_BTHELPER.toByteArray()
             )
             isSliceSet = setMetadata(
                 device,
-                device.METADATA_SOFTWARE_VERSION,
+                METADATA_SOFTWARE_VERSION,
                 COMPANION_TYPE_NONE.toByteArray()
             )
             isSliceSet = setMetadata(
                 device,
-                device.METADATA_ENHANCED_SETTINGS_UI_URI,
+                METADATA_ENHANCED_SETTINGS_UI_URI,
                 getUri(Constants.PATH_BTHELPER).toString().toByteArray()
             )
         }
@@ -208,135 +250,135 @@ class PodsService : Service() {
             if (!isMetaDataSet) {
                 isModelDataSet = (setMetadata(
                     device,
-                    device.METADATA_MANUFACTURER_NAME,
-                    regularPods.getMenufacturer().getBytes()
+                    METADATA_MANUFACTURER_NAME,
+                    regularPods!!.manufacturer!!.toByteArray()
                 )
                         && setMetadata(
                     device,
-                    device.METADATA_MODEL_NAME,
-                    regularPods.getModel().getBytes()
+                    METADATA_MODEL_NAME,
+                    regularPods.model!!.toByteArray()
                 )
                         && setMetadata(
                     device,
-                    device.METADATA_DEVICE_TYPE,
-                    device.DEVICE_TYPE_UNTETHERED_HEADSET.getBytes()
+                    METADATA_DEVICE_TYPE,
+                    DEVICE_TYPE_UNTETHERED_HEADSET.toByteArray()
                 )
                         && setMetadata(
                     device,
-                    device.METADATA_MAIN_LOW_BATTERY_THRESHOLD,
-                    (regularPods.getLowBattThreshold() + "").toByteArray()
+                    METADATA_MAIN_LOW_BATTERY_THRESHOLD,
+                    (regularPods.lowBattThreshold.toString()).toByteArray()
                 )
                         && setMetadata(
                     device,
-                    device.METADATA_UNTETHERED_LEFT_LOW_BATTERY_THRESHOLD,
-                    (regularPods.getLowBattThreshold() + "").toByteArray()
+                    METADATA_UNTETHERED_LEFT_LOW_BATTERY_THRESHOLD,
+                    (regularPods.lowBattThreshold.toString()).toByteArray()
                 )
                         && setMetadata(
                     device,
-                    device.METADATA_UNTETHERED_RIGHT_LOW_BATTERY_THRESHOLD,
-                    (regularPods.getLowBattThreshold() + "").toByteArray()
+                    METADATA_UNTETHERED_RIGHT_LOW_BATTERY_THRESHOLD,
+                    (regularPods.lowBattThreshold.toString()).toByteArray()
                 )
                         && setMetadata(
                     device,
-                    device.METADATA_UNTETHERED_CASE_LOW_BATTERY_THRESHOLD,
-                    (regularPods.getLowBattThreshold() + "").toByteArray()
+                    METADATA_UNTETHERED_CASE_LOW_BATTERY_THRESHOLD,
+                    (regularPods.lowBattThreshold.toString()).toByteArray()
                 )
                         && setMetadata(
                     device,
-                    device.METADATA_MAIN_ICON,
-                    resToUri(regularPods.getDrawable()).toString().toByteArray()
+                    METADATA_MAIN_ICON,
+                    resToUri(regularPods.drawable).toString().toByteArray()
                 )
                         && setMetadata(
                     device,
-                    device.METADATA_UNTETHERED_LEFT_ICON,
-                    resToUri(regularPods.getLeftDrawable()).toString().toByteArray()
+                    METADATA_UNTETHERED_LEFT_ICON,
+                    resToUri(regularPods.leftDrawable).toString().toByteArray()
                 )
                         && setMetadata(
                     device,
-                    device.METADATA_UNTETHERED_RIGHT_ICON,
-                    resToUri(regularPods.getRightDrawable()).toString().toByteArray()
+                    METADATA_UNTETHERED_RIGHT_ICON,
+                    resToUri(regularPods.rightDrawable).toString().toByteArray()
                 )
                         && setMetadata(
                     device,
-                    device.METADATA_UNTETHERED_CASE_ICON,
-                    resToUri(regularPods.getCaseDrawable()).toString().toByteArray()
+                    METADATA_UNTETHERED_CASE_ICON,
+                    resToUri(regularPods.caseDrawable).toString().toByteArray()
                 ))
             }
             if (statusChanged) {
-                val leftCharging: Boolean = regularPods.isCharging(RegularPods.LEFT)
+                val leftCharging: Boolean = regularPods!!.isCharging(RegularPods.LEFT)
                 val rightCharging: Boolean = regularPods.isCharging(RegularPods.RIGHT)
                 val caseCharging: Boolean = regularPods.isCharging(RegularPods.CASE)
                 val leftBattery: Int = regularPods.getParsedStatus(RegularPods.LEFT)
                 val rightBattery: Int = regularPods.getParsedStatus(RegularPods.RIGHT)
                 val caseBattery: Int = regularPods.getParsedStatus(RegularPods.CASE)
                 device.setMetadata(
-                    device.METADATA_UNTETHERED_LEFT_CHARGING,
+                    METADATA_UNTETHERED_LEFT_CHARGING,
                     (leftCharging.toString() + "").uppercase(
                         Locale.getDefault()
                     ).toByteArray()
                 )
                 device.setMetadata(
-                    device.METADATA_UNTETHERED_RIGHT_CHARGING,
+                    METADATA_UNTETHERED_RIGHT_CHARGING,
                     (rightCharging.toString() + "").uppercase(
                         Locale.getDefault()
                     ).toByteArray()
                 )
                 device.setMetadata(
-                    device.METADATA_UNTETHERED_CASE_CHARGING,
+                    METADATA_UNTETHERED_CASE_CHARGING,
                     (caseCharging.toString() + "").uppercase(
                         Locale.getDefault()
                     ).toByteArray()
                 )
                 device.setMetadata(
-                    device.METADATA_UNTETHERED_LEFT_BATTERY,
+                    METADATA_UNTETHERED_LEFT_BATTERY,
                     (leftBattery.toString() + "").toByteArray()
                 )
                 device.setMetadata(
-                    device.METADATA_UNTETHERED_RIGHT_BATTERY,
+                    METADATA_UNTETHERED_RIGHT_BATTERY,
                     (rightBattery.toString() + "").toByteArray()
                 )
                 device.setMetadata(
-                    device.METADATA_UNTETHERED_CASE_BATTERY,
+                    METADATA_UNTETHERED_CASE_BATTERY,
                     (caseBattery.toString() + "").toByteArray()
                 )
                 chargingMain = leftCharging && rightCharging
-                batteryUnified = Math.min(leftBattery, rightBattery)
+                batteryUnified = leftBattery.coerceAtMost(rightBattery)
             }
         } else {
             val singlePods: SinglePods? = airpods as SinglePods?
             if (!isMetaDataSet) {
                 isModelDataSet = (setMetadata(
                     device,
-                    device.METADATA_MANUFACTURER_NAME,
-                    singlePods.getMenufacturer().getBytes()
+                    METADATA_MANUFACTURER_NAME,
+                    singlePods!!.manufacturer!!.toByteArray()
                 )
                         && setMetadata(
                     device,
-                    device.METADATA_DEVICE_TYPE,
-                    device.DEVICE_TYPE_UNTETHERED_HEADSET.getBytes()
+                    METADATA_DEVICE_TYPE,
+                    DEVICE_TYPE_UNTETHERED_HEADSET.toByteArray()
                 )
                         && setMetadata(
                     device,
-                    device.METADATA_MODEL_NAME,
-                    singlePods.getModel().getBytes()
+                    METADATA_MODEL_NAME,
+                    singlePods.model!!.toByteArray()
                 )
                         && setMetadata(
                     device,
-                    device.METADATA_MAIN_LOW_BATTERY_THRESHOLD,
-                    (singlePods.getLowBattThreshold() + "").toByteArray()
+                    METADATA_MAIN_LOW_BATTERY_THRESHOLD,
+                    (singlePods.lowBattThreshold.toString()).toByteArray()
                 )
                         && setMetadata(
                     device,
-                    device.METADATA_MAIN_ICON,
-                    resToUri(singlePods.getDrawable()).toString().toByteArray()
+                    METADATA_MAIN_ICON,
+                    resToUri(singlePods.drawable).toString().toByteArray()
                 ))
             }
-            chargingMain = singlePods.isCharging()
-            batteryUnified = singlePods.getParsedStatus()
+            chargingMain = singlePods!!.isCharging
+            batteryUnified = singlePods.parsedStatus
         }
         if (statusChanged) {
             device.setMetadata(
-                device.METADATA_MAIN_CHARGING, (chargingMain.toString() + "").uppercase(
+                METADATA_MAIN_CHARGING, (chargingMain.toString() + "").uppercase(
                     Locale.getDefault()
                 ).toByteArray()
             )
@@ -352,6 +394,7 @@ class PodsService : Service() {
 
     // Send broadcasts to Android Settings Intelligence, Bluetooth app, System Settings
     // to reflect current device status changes
+    @SuppressLint("MissingPermission")
     private fun broadcastHfIndicatorEventIntent(battery: Int, device: BluetoothDevice?) {
         // Update battery status for this device
         val intent = Intent(ACTION_HF_INDICATORS_VALUE_CHANGED)

@@ -6,7 +6,13 @@
  */
 package moe.chenxy.hyperpods.pods
 
-import com.android.bluetooth.bthelper.pods.models.AirPods1
+import moe.chenxy.hyperpods.pods.models.AirPods1
+import moe.chenxy.hyperpods.pods.models.AirPods2
+import moe.chenxy.hyperpods.pods.models.AirPods3
+import moe.chenxy.hyperpods.pods.models.AirPodsMax
+import moe.chenxy.hyperpods.pods.models.AirPodsPro
+import moe.chenxy.hyperpods.pods.models.AirPodsPro2
+import moe.chenxy.hyperpods.pods.models.IPods
 
 /**
  * Decoding the beacon:
@@ -40,13 +46,13 @@ class PodsStatus {
         val singleStatus = ("" + status[13]).toInt(16) // Single (0-10 batt; 15=disconnected)
         val chargeStatus =
             ("" + status[14]).toInt(16) // Charge status (bit 0=left; bit 1=right; bit 2=case)
-        val chargeL = chargeStatus and if (flip) 2 else 1 != 0
-        val chargeR = chargeStatus and if (flip) 1 else 2 != 0
+        val chargeL = chargeStatus and (if (flip) 2 else 1) != 0
+        val chargeR = chargeStatus and (if (flip) 1 else 2) != 0
         val chargeCase = chargeStatus and 4 != 0
         val chargeSingle = chargeStatus and 1 != 0
         val inEarStatus = ("" + status[11]).toInt(16) // InEar status (bit 1=left; bit 3=right)
-        val inEarL = inEarStatus and if (flip) 8 else 2 != 0
-        val inEarR = inEarStatus and if (flip) 2 else 8 != 0
+        val inEarL = inEarStatus and (if (flip) 8 else 2) != 0
+        val inEarR = inEarStatus and (if (flip) 2 else 8) != 0
         val leftPod = Pod(leftStatus, chargeL, inEarL)
         val rightPod = Pod(rightStatus, chargeR, inEarR)
         val casePod = Pod(caseStatus, chargeCase, false)
@@ -73,7 +79,7 @@ class PodsStatus {
     val airpods: IPods?
         get() = pods
     val isAllDisconnected: Boolean
-        get() = if (this === DISCONNECTED) true else pods.isDisconnected()
+        get() = if (this === DISCONNECTED) true else pods!!.isDisconnected
 
     companion object {
         val DISCONNECTED = PodsStatus()

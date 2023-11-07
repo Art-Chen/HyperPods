@@ -6,7 +6,8 @@
  */
 package moe.chenxy.hyperpods.pods.models
 
-import com.android.bluetooth.bthelper.pods.Pod
+import moe.chenxy.hyperpods.R
+import moe.chenxy.hyperpods.pods.Pod
 
 class AirPodsPro2(color: String?, leftPod: Pod, rightPod: Pod, casePod: Pod) :
     RegularPods(color, leftPod, rightPod, casePod) {
@@ -20,6 +21,6 @@ class AirPodsPro2(color: String?, leftPod: Pod, rightPod: Pod, casePod: Pod) :
         get() = R.drawable.AirPods_Pro_Case
     override val model: String?
         get() = Constants.MODEL_AIRPODS_PRO_2
-    override val menufacturer: String?
+    override val manufacturer: String?
         get() = Constants.MANUFACTURER_APPLE
 }

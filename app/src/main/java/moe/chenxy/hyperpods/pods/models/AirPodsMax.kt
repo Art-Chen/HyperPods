@@ -6,7 +6,8 @@
  */
 package moe.chenxy.hyperpods.pods.models
 
-import com.android.bluetooth.bthelper.pods.Pod
+import moe.chenxy.hyperpods.R
+import moe.chenxy.hyperpods.pods.Pod
 
 class AirPodsMax(color: String?, singlePod: Pod) : SinglePods(color, singlePod) {
     override val drawable: Int
@@ -20,6 +21,6 @@ class AirPodsMax(color: String?, singlePod: Pod) : SinglePods(color, singlePod) 
         }
     override val model: String?
         get() = Constants.MODEL_AIRPODS_MAX
-    override val menufacturer: String?
+    override val manufacturer: String?
         get() = Constants.MANUFACTURER_APPLE
 }

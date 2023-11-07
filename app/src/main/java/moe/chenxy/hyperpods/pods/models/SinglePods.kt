@@ -6,7 +6,7 @@
  */
 package moe.chenxy.hyperpods.pods.models
 
-import com.android.bluetooth.bthelper.pods.Pod
+import moe.chenxy.hyperpods.pods.Pod
 
 abstract class SinglePods(color: String?, pod: Pod) : IPods {
     abstract val drawable: Int
@@ -27,14 +27,14 @@ abstract class SinglePods(color: String?, pod: Pod) : IPods {
     override val isSingle: Boolean
         get() = true
     override val isDisconnected: Boolean
-        get() = pod.isDisconnected()
+        get() = pod.isDisconnected
     override val lowBattThreshold: Int
         get() =// Most AirPods have same Low Battery Threshold to 20
             20
-    override val menufacturer: String?
+    override val manufacturer: String?
         get() = Constants.UNKNOWN
     val isInEar: Boolean
-        get() = pod.isInEar()
+        get() = pod.isInEar
     val isCharging: Boolean
-        get() = pod.isCharging()
+        get() = pod.isCharging
 }
