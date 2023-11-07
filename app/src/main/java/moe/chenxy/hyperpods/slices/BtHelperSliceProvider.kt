@@ -13,7 +13,6 @@ import android.content.SharedPreferences
 import android.content.res.TypedArray
 import android.net.Uri
 import androidx.annotation.ColorInt
-import androidx.slice.builders.ListBuilder
 import moe.chenxy.hyperpods.Constants
 
 class BtHelperSliceProvider : SliceProvider() {
