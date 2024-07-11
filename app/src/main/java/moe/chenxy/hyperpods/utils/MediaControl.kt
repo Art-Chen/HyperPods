@@ -19,65 +19,57 @@ class MediaControl(context: Context) {
     companion object {
         private lateinit var audioManager: AudioManager
         private var mInstance: MediaControl? = null
+
+        @JvmStatic
         @Synchronized
-        fun getInstance(context: Context): MediaControl {
+        fun getInstance(context: Context): MediaControl? {
             if (mInstance == null) {
                 mInstance = MediaControl(context)
             }
-            return mInstance!!
+            return mInstance
         }
 
-    }
+        @JvmStatic
+        val isPlaying: Boolean
+            get() = audioManager.isMusicActive
 
-    val isPlaying: Boolean
-        get() = audioManager.isMusicActive
-
-    fun sendPlay() {
-        if (isPlaying) {
-            return
+        @JvmStatic
+        fun sendPlay() {
+            if (isPlaying) {
+                return
+            }
+            sendKey(KeyEvent.KEYCODE_MEDIA_PLAY)
         }
-        sendKey(KeyEvent.KEYCODE_MEDIA_PLAY)
-    }
 
-    fun sendPause() {
-        if (!isPlaying) {
-            return
+        @JvmStatic
+        fun sendPause() {
+            if (!isPlaying) {
+                return
+            }
+            sendKey(KeyEvent.KEYCODE_MEDIA_PAUSE)
         }
-        sendKey(KeyEvent.KEYCODE_MEDIA_PAUSE)
-    }
 
-    fun sendPlayPause() {
-        if (isPlaying) {
-            sendPause()
-        } else {
-            sendPlay()
+        fun sendPlayPause() {
+            if (isPlaying) {
+                sendPause()
+            } else {
+                sendPlay()
+            }
         }
-    }
 
-    private fun sendKey(keyCode: Int) {
-        val eventTime = SystemClock.uptimeMillis()
-        audioManager.dispatchMediaKeyEvent(
-            KeyEvent(
-                eventTime,
-                eventTime,
-                KeyEvent.ACTION_DOWN,
-                keyCode,
-                0
+        private fun sendKey(keyCode: Int) {
+            val eventTime = SystemClock.uptimeMillis()
+            audioManager.dispatchMediaKeyEvent(
+                KeyEvent(eventTime, eventTime, KeyEvent.ACTION_DOWN, keyCode, 0)
             )
-        )
-        try {
-            Thread.sleep(100)
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-        }
-        audioManager.dispatchMediaKeyEvent(
-            KeyEvent(
-                eventTime + 200,
-                eventTime + 200,
-                KeyEvent.ACTION_UP,
-                keyCode,
-                0
+            try {
+                Thread.sleep(100)
+            } catch (e: InterruptedException) {
+                Thread.currentThread().interrupt()
+            }
+            audioManager.dispatchMediaKeyEvent(
+                KeyEvent(eventTime + 200, eventTime + 200, KeyEvent.ACTION_UP, keyCode, 0)
             )
-        )
+        }
     }
 }

@@ -1,54 +1,100 @@
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("com.google.devtools.ksp") version "1.9.20-1.0.14"
+    alias(libs.plugins.agp.app)
+    alias(libs.plugins.kotlin)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.lsplugin.apksign)
+    alias(libs.plugins.lsplugin.resopt)
 }
+
 
 android {
     namespace = "moe.chenxy.hyperpods"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "moe.chenxy.hyperpods"
         minSdk = 33
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
-        release {
+        debug {
+            isDebuggable = true
             isMinifyEnabled = false
+            isShrinkResources = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            isDebuggable = false
+            multiDexEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+
+    dependenciesInfo.includeInApk = false
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(JavaVersion.VERSION_22.majorVersion)
+        }
     }
-    kotlinOptions {
-        jvmTarget = "17"
+
+    kotlin {
+        jvmToolchain(JavaVersion.VERSION_22.majorVersion.toInt())
     }
+
+    namespace = "moe.chenxy.miuiextra"
+
     buildFeatures {
-        viewBinding = true
+        buildConfig = true
+    }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "/META-INF/**.version"
+            excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
+            excludes += "okhttp3/**"
+            excludes += "kotlin/**"
+            excludes += "org/**"
+            excludes += "**.properties"
+            excludes += "**.bin"
+            excludes += "kotlin-tooling-metadata.json"
+        }
     }
 }
 
+configurations.configureEach {
+    exclude(group = "androidx.appcompat", module = "appcompat")
+    exclude(group = "androidx.lifecycle", module = "lifecycle-viewmodel-ktx")
+}
+
 dependencies {
-
-    implementation("androidx.slice:slice-builders-ktx:1.0.0")
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-
-    implementation("com.highcapable.yukihookapi:api:1.2.0")
-    // ❗Be sure to add it as an Xposed Module, optional in other cases
-    compileOnly("de.robv.android.xposed:api:82")
-    // ❗Be sure to add it as an Xposed Module, optional in other cases
-    ksp("com.highcapable.yukihookapi:ksp-xposed:1.2.0")
+    implementation(libs.coordinatorlayout)
+    implementation(libs.coreKtx)
+    implementation(libs.material)
+    implementation(libs.preferenceKtx)
+    implementation(libs.rikkaxAppcompat)
+    implementation(libs.rikkaxCore)
+    implementation(libs.rikkaxInsets)
+    implementation(libs.rikkaxMaterial)
+    implementation(libs.rikkaxMaterialPreference)
+    implementation(libs.rikkaxSimplemenuPreference)
+    implementation(libs.rikkaxRecyclerviewKtx)
+    implementation(libs.rikkaxBorderview)
+    implementation(libs.rikkaxMainswitchbar)
+    implementation(libs.rikkaxLayoutinflater)
+    compileOnly(libs.xposedApi)
+    implementation(libs.yukihookApi)
+    ksp(libs.yukihookKsp)
 }
