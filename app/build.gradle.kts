@@ -53,8 +53,6 @@ android {
         jvmToolchain(JavaVersion.VERSION_22.majorVersion.toInt())
     }
 
-    namespace = "moe.chenxy.miuiextra"
-
     buildFeatures {
         buildConfig = true
     }

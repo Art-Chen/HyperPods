@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string-array name="xposedscope">
-        <item>com.xiaomi.misettings</item>
-        <item>com.xiaomi.bluetooth</item>
+        <item>com.android.settings</item>
+        <item>com.android.bluetooth</item>
     </string-array>
 </resources>
