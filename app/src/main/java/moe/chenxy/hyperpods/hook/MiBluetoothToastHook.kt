@@ -103,10 +103,12 @@ object MiBluetoothToastHook : YukiBaseHooker(){
                     alias = bluetoothDevice.name
                 }
 
-                val str6: String = (
-                        (context.resources.getString(miheadset_notification_Box) + "：" + case + " %\n" +
-                        context.resources.getString(miheadset_notification_LeftEar)) + "：" + left + "% | " +
-                        context.resources.getString(miheadset_notification_RightEar)) + "：" + right + "%"
+                val caseBattStr = if (case != -1) context.resources.getString(miheadset_notification_Box) + "：" + case + " %\n" else ""
+                val leftEar = if (left != -1) context.resources.getString(miheadset_notification_LeftEar) + "：" + left + "%" else ""
+                val leftToRight = if (left != -1 && right != -1) " | " else ""
+                val rightEar = if (right != -1) leftToRight + context.resources.getString(miheadset_notification_RightEar) + "：" + right + "%" else ""
+
+                val content: String = caseBattStr + leftEar + rightEar
                 val notificationManager = context.getSystemService("notification") as NotificationManager
                 notificationManager.createNotificationChannel(
                     NotificationChannel(
@@ -139,7 +141,7 @@ object MiBluetoothToastHook : YukiBaseHooker(){
                     Notification.Builder(context, "BTHeadset$address").setSmallIcon(
                         android.R.drawable.stat_sys_data_bluetooth
                     ).setWhen(0L).setTicker(alias).setDefaults(-1).setContentTitle(alias)
-                        .setContentText(str6)
+                        .setContentText(content)
                         .setDeleteIntent(deleteIntent(context, bluetoothDevice)).setColor(
                             context.getColor(
                                 system_notification_accent_color
