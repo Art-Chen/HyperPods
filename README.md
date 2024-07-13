@@ -24,4 +24,5 @@ Express my gratitude to the following projects as `BtHelper` do:
 `HyperPods`(This Project) is licensed under the GNU General Public License v3.0 too.
 
 Copyright (C) 2023 someone5678
+
 Copyright (C) 2024 Art_Chen
