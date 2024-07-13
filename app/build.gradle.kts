@@ -7,6 +7,12 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
 }
 
+apksign {
+    storeFileProperty = "KEYSTORE_FILE"
+    storePasswordProperty = "KEYSTORE_PASSWORD"
+    keyAliasProperty = "KEY_ALIAS"
+    keyPasswordProperty = "KEY_PASSWORD"
+}
 
 android {
     namespace = "moe.chenxy.hyperpods"
@@ -17,7 +23,7 @@ android {
         minSdk = 33
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0-U-HyperOS"
     }
 
     buildTypes {
