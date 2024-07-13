@@ -98,10 +98,10 @@ object MiuiStrongToastUtil {
         }
         try {
             val leftText =
-                TextParams("$left %", if (leftCharging) Color.GREEN else if (left <= lowBatteryThreshold) Color.RED else Color.WHITE)
+                TextParams(if (left != -1) "$left %" else "", if (leftCharging) Color.GREEN else if (left <= lowBatteryThreshold) Color.RED else Color.WHITE)
             val leftVideo = IconParams(Category.RAW, FileType.MP4, leftVideoUri.toString(), 1)
             val rightText =
-                TextParams("$right %", if (rightCharging) Color.GREEN else if (right <= lowBatteryThreshold) Color.RED else Color.WHITE)
+                TextParams(if (right != -1) "$right %" else "", if (rightCharging) Color.GREEN else if (right <= lowBatteryThreshold) Color.RED else Color.WHITE)
             val rightVideo = IconParams(Category.RAW, FileType.MP4, rightVideoUri.toString(), 1)
             val l = Left(textParams = leftText, iconParams = leftVideo)
             val r = Right(textParams = rightText, iconParams = rightVideo)

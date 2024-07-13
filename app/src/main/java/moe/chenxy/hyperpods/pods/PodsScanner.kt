@@ -97,6 +97,13 @@ class PodsScanner(private val context: Context, private val moduleResources: Yuk
         isAlreadyShowLeftLowBatt = false
         isAlreadyShowRightLowBatt = false
         isAlreadyShowCaseLowBatt = false
+
+        // Disable batt icon after disconnected
+        val statusBarIntent = Intent(ACTION_BLUETOOTH_HANDSFREE_BATTERY_CHANGED)
+        statusBarIntent.`package` = "com.android.systemui"
+        statusBarIntent.putExtra(EXTRA_SHOW_BT_HANDSFREE_BATTERY, false)
+        statusBarIntent.putExtra(EXTRA_BT_HANDSFREE_BATTERY_LEVEL, BATTERY_LEVEL_UNKNOWN)
+        context.sendBroadcastAsUser(statusBarIntent, getUserAllUserHandle())
     }
 
     /**
@@ -414,9 +421,8 @@ class PodsScanner(private val context: Context, private val moduleResources: Yuk
                 showPodsNotificationByMiuiBt(context, leftBattery, rightBattery, caseBattery, device)
 
                 chargingMain = leftCharging && rightCharging
-                batteryUnified = min(leftBattery.toDouble(), rightBattery.toDouble()).toInt()
-                batteryUnifiedArg = min(leftBatteryArg.toDouble(), rightBatteryArg.toDouble())
-                    .toInt()
+                batteryUnified = if (leftBattery != BATTERY_LEVEL_UNKNOWN && leftBattery < rightBattery) leftBattery else rightBattery
+                batteryUnifiedArg = if (leftBatteryArg != BATTERY_LEVEL_UNKNOWN && leftBatteryArg < rightBatteryArg) leftBatteryArg else rightBatteryArg
                 lastCaseBatt = caseBattery
             }
         } else {
