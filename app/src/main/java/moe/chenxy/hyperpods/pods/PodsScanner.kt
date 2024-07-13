@@ -348,7 +348,7 @@ class PodsScanner(private val context: Context, private val moduleResources: Yuk
                     (caseBattery.toString() + "").toByteArray()
                 )
 
-                Log.i("Art_Chen", "statusChanged battery left $leftBattery right $rightBattery case $caseBattery")
+                Log.v("Art_Chen", "statusChanged battery left $leftBattery right $rightBattery case $caseBattery")
                 if (!isAlreadyShowConnectedToast || (lastCaseBatt == -1 && caseBattery != -1)) {
                     MiuiStrongToastUtil.showPodsBatteryToastByMiuiBt(
                         context,
@@ -544,8 +544,8 @@ class PodsScanner(private val context: Context, private val moduleResources: Yuk
         private const val VENDOR_SPECIFIC_HEADSET_EVENT_IPHONEACCEV_BATTERY_LEVEL = 1
 
         /*
-     * Apple, Inc.
-     */
+         * Apple, Inc.
+         */
         private const val APPLE = 0x004C
 
         /**
@@ -575,7 +575,6 @@ class PodsScanner(private val context: Context, private val moduleResources: Yuk
         private const val ACTION_ASI_UPDATE_BLUETOOTH_DATA =
             "batterywidget.impl.action.update_bluetooth_data"
 
-        private const val COMPANION_TYPE_NONE = "COMPANION_NONE"
 
         /** A vendor-specific command for unsolicited result code.  */
         const val VENDOR_RESULT_CODE_COMMAND_ANDROID: String = "+ANDROID"
@@ -585,9 +584,7 @@ class PodsScanner(private val context: Context, private val moduleResources: Yuk
         // Check whether current device is single model (e.g. AirPods Max)
         var isSingleDevice: Boolean = false
             private set
-        private var mSharedPrefs: SharedPreferences? = null
         private var mediaControl: MediaControl? = null
-        private var previousWorn = false
 
         // Convert internal content address combined with recieved path value to URI
         fun getUri(path: String?): Uri {
