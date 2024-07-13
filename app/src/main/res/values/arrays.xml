@@ -3,5 +3,6 @@
     <string-array name="xposedscope">
         <item>com.android.settings</item>
         <item>com.android.bluetooth</item>
+        <item>com.xiaomi.bluetooth</item>
     </string-array>
 </resources>

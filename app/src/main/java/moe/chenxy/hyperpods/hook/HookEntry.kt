@@ -8,7 +8,9 @@ import com.highcapable.yukihookapi.hook.xposed.proxy.IYukiHookXposedInit
 @InjectYukiHookWithXposed
 object HookEntry : IYukiHookXposedInit {
     override fun onHook()  = YukiHookAPI.encase {
+        this.
         loadApp("com.android.bluetooth", HeadsetStateDispatcher)
+        loadApp("com.xiaomi.bluetooth", MiBluetoothToastHook)
     }
 
     override fun onInit() = configs {

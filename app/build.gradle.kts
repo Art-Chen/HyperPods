@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.lsplugin.apksign)
     alias(libs.plugins.lsplugin.resopt)
+    alias(libs.plugins.kotlinSerialization)
 }
 
 
@@ -73,26 +74,14 @@ android {
 }
 
 configurations.configureEach {
-    exclude(group = "androidx.appcompat", module = "appcompat")
+//    exclude(group = "androidx.appcompat", module = "appcompat")
     exclude(group = "androidx.lifecycle", module = "lifecycle-viewmodel-ktx")
 }
 
 dependencies {
-    implementation(libs.coordinatorlayout)
     implementation(libs.coreKtx)
-    implementation(libs.material)
-    implementation(libs.preferenceKtx)
-    implementation(libs.rikkaxAppcompat)
-    implementation(libs.rikkaxCore)
-    implementation(libs.rikkaxInsets)
-    implementation(libs.rikkaxMaterial)
-    implementation(libs.rikkaxMaterialPreference)
-    implementation(libs.rikkaxSimplemenuPreference)
-    implementation(libs.rikkaxRecyclerviewKtx)
-    implementation(libs.rikkaxBorderview)
-    implementation(libs.rikkaxMainswitchbar)
-    implementation(libs.rikkaxLayoutinflater)
     compileOnly(libs.xposedApi)
     implementation(libs.yukihookApi)
     ksp(libs.yukihookKsp)
+    implementation(libs.kotlinx.serialization.json)
 }

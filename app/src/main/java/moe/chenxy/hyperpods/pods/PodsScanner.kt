@@ -10,22 +10,19 @@ package moe.chenxy.hyperpods.pods
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.Service
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothHeadset
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanSettings
-import android.content.BroadcastReceiver
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.Resources
 import android.net.Uri
-import android.os.IBinder
-import android.os.UserHandle
 import android.util.Log
+import com.highcapable.yukihookapi.hook.xposed.bridge.resources.YukiModuleResources
 import moe.chenxy.hyperpods.Constants
 import moe.chenxy.hyperpods.pods.models.RegularPods
 import moe.chenxy.hyperpods.pods.models.SinglePods
@@ -56,6 +53,9 @@ import kotlin.math.min
 import moe.chenxy.hyperpods.utils.SystemApisUtils.getMetadata
 import moe.chenxy.hyperpods.utils.SystemApisUtils.getUserAllUserHandle
 import moe.chenxy.hyperpods.utils.SystemApisUtils.setMetadata
+import moe.chenxy.hyperpods.utils.miuiStrongToast.MiuiStrongToastUtil
+import moe.chenxy.hyperpods.utils.miuiStrongToast.MiuiStrongToastUtil.cancelPodsNotificationByMiuiBt
+import moe.chenxy.hyperpods.utils.miuiStrongToast.MiuiStrongToastUtil.showPodsNotificationByMiuiBt
 
 /**
  * This is the class that does most of the work. It has 3 functions:
@@ -63,11 +63,10 @@ import moe.chenxy.hyperpods.utils.SystemApisUtils.setMetadata
  * - Receive beacons from AirPods and decode them (easier said than done thanks to google's autism)
  */
 @SuppressLint("MissingPermission")
-class PodsScanner(private val context: Context) {
+class PodsScanner(private val context: Context, private val moduleResources: YukiModuleResources) {
     private lateinit var btScanner: BluetoothLeScanner
     private var status: PodsStatus = PodsStatus.DISCONNECTED
 
-    private val btReceiver: BroadcastReceiver? = null
     private var scanCallback: PodsStatusScanCallback? = null
 
     private var isMetaDataSet = false
@@ -75,6 +74,11 @@ class PodsScanner(private val context: Context) {
     private var isModelDataSet = false
 
     private var statusChanged = false
+    private var isAlreadyShowConnectedToast = false
+    private var isAlreadyShowLeftLowBatt = false
+    private var isAlreadyShowRightLowBatt = false
+    private var isAlreadyShowCaseLowBatt = false
+    private var lastCaseBatt = -1
 
     fun startScan(device: BluetoothDevice) {
         mCurrentDevice = device
@@ -82,8 +86,13 @@ class PodsScanner(private val context: Context) {
     }
 
     fun stopScan() {
+        mCurrentDevice?.let { cancelPodsNotificationByMiuiBt(context, it) }
         mCurrentDevice = null
         stopAirPodsScanner()
+        isAlreadyShowConnectedToast = false
+        isAlreadyShowLeftLowBatt = false
+        isAlreadyShowRightLowBatt = false
+        isAlreadyShowCaseLowBatt = false
     }
 
     /**
@@ -203,13 +212,10 @@ class PodsScanner(private val context: Context) {
                     .scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
                     .authority(Constants.PKG_NAME_HYPERPODS)
                     .appendPath(
-                        context
-                            .resources
-                            .getResourceTypeName(resId)
+                        moduleResources.getResourceTypeName(resId)
                     )
                     .appendPath(
-                        context
-                            .resources
+                        moduleResources
                             .getResourceEntryName(resId)
                     )
                     .build()
@@ -280,32 +286,34 @@ class PodsScanner(private val context: Context) {
                         device.METADATA_UNTETHERED_CASE_LOW_BATTERY_THRESHOLD,
                         (regularPods.lowBattThreshold.toString() + "").toByteArray()
                     )
-                            && setMetadata(
-                        device,
-                        device.METADATA_MAIN_ICON,
-                        resToUri(regularPods.drawable).toString().toByteArray()
-                    )
-                            && setMetadata(
-                        device,
-                        device.METADATA_UNTETHERED_LEFT_ICON,
-                        resToUri(regularPods.leftDrawable)
-                            .toString()
-                            .toByteArray()
-                    )
-                            && setMetadata(
-                        device,
-                        device.METADATA_UNTETHERED_RIGHT_ICON,
-                        resToUri(regularPods.rightDrawable)
-                            .toString()
-                            .toByteArray()
-                    )
-                            && setMetadata(
-                        device,
-                        device.METADATA_UNTETHERED_CASE_ICON,
-                        resToUri(regularPods.caseDrawable)
-                            .toString()
-                            .toByteArray()
-                    ))
+                    // TODO: Support showing pods icons
+//                            && setMetadata(
+//                        device,
+//                        device.METADATA_MAIN_ICON,
+//                        resToUri(regularPods.drawable).toString().toByteArray()
+//                    )
+//                            && setMetadata(
+//                        device,
+//                        device.METADATA_UNTETHERED_LEFT_ICON,
+//                        resToUri(regularPods.leftDrawable)
+//                            .toString()
+//                            .toByteArray()
+//                    )
+//                            && setMetadata(
+//                        device,
+//                        device.METADATA_UNTETHERED_RIGHT_ICON,
+//                        resToUri(regularPods.rightDrawable)
+//                            .toString()
+//                            .toByteArray()
+//                    )
+//                            && setMetadata(
+//                        device,
+//                        device.METADATA_UNTETHERED_CASE_ICON,
+//                        resToUri(regularPods.caseDrawable)
+//                            .toString()
+//                            .toByteArray()
+//                    )
+                )
             }
 
             if (statusChanged) {
@@ -340,10 +348,72 @@ class PodsScanner(private val context: Context) {
                     (caseBattery.toString() + "").toByteArray()
                 )
 
+                Log.i("Art_Chen", "statusChanged battery left $leftBattery right $rightBattery case $caseBattery")
+                if (!isAlreadyShowConnectedToast || (lastCaseBatt == -1 && caseBattery != -1)) {
+                    MiuiStrongToastUtil.showPodsBatteryToastByMiuiBt(
+                        context,
+                        leftBattery,
+                        leftCharging,
+                        rightBattery,
+                        rightCharging,
+                        caseBattery,
+                        caseCharging,
+                        regularPods.lowBattThreshold
+                    )
+
+                    // Prevent double low batt toast
+                    if (leftBattery <= regularPods.lowBattThreshold) isAlreadyShowLeftLowBatt = true
+                    if (rightBattery <= regularPods.lowBattThreshold) isAlreadyShowRightLowBatt = true
+                    if (caseBattery <= regularPods.lowBattThreshold) isAlreadyShowCaseLowBatt = true
+                    isAlreadyShowConnectedToast = true
+                } else {
+                    // Low Batt
+                    if (!isAlreadyShowLeftLowBatt && !leftCharging && leftBattery <= regularPods.lowBattThreshold) {
+                        MiuiStrongToastUtil.showPodsBatteryToastByMiuiBt(
+                            context,
+                            leftBattery,
+                            leftCharging,
+                            rightBattery,
+                            rightCharging,
+                            -1,
+                            false,
+                            regularPods.lowBattThreshold
+                        )
+                        isAlreadyShowLeftLowBatt = true
+                    } else if (!isAlreadyShowRightLowBatt && !rightCharging && rightBattery <= regularPods.lowBattThreshold) {
+                        MiuiStrongToastUtil.showPodsBatteryToastByMiuiBt(
+                            context,
+                            leftBattery,
+                            leftCharging,
+                            rightBattery,
+                            rightCharging,
+                            -1,
+                            false,
+                            regularPods.lowBattThreshold
+                        )
+                        isAlreadyShowRightLowBatt = true
+                    } else if (!isAlreadyShowCaseLowBatt && !caseCharging && caseBattery <= regularPods.lowBattThreshold) {
+                        MiuiStrongToastUtil.showPodsBatteryToastByMiuiBt(
+                            context,
+                            -1,
+                            false,
+                            -1,
+                            false,
+                            caseBattery,
+                            caseCharging,
+                            regularPods.lowBattThreshold
+                        )
+                        isAlreadyShowCaseLowBatt = true
+                    }
+                }
+
+                showPodsNotificationByMiuiBt(context, leftBattery, rightBattery, caseBattery, device)
+
                 chargingMain = leftCharging && rightCharging
                 batteryUnified = min(leftBattery.toDouble(), rightBattery.toDouble()).toInt()
                 batteryUnifiedArg = min(leftBatteryArg.toDouble(), rightBatteryArg.toDouble())
                     .toInt()
+                lastCaseBatt = caseBattery
             }
         } else {
             val singlePods = airpods as SinglePods
@@ -374,11 +444,12 @@ class PodsScanner(private val context: Context) {
                         device.METADATA_MAIN_LOW_BATTERY_THRESHOLD,
                         (singlePods.lowBattThreshold.toString() + "").toByteArray()
                     )
-                            && setMetadata(
-                        device,
-                        device.METADATA_MAIN_ICON,
-                        resToUri(singlePods.drawable).toString().toByteArray()
-                    ))
+//                            && setMetadata(
+//                        device,
+//                        device.METADATA_MAIN_ICON,
+//                        resToUri(singlePods.drawable).toString().toByteArray()
+//                    )
+                    )
             }
             chargingMain = singlePods.isCharging
             batteryUnified = singlePods.getParsedStatus(true)
@@ -386,7 +457,7 @@ class PodsScanner(private val context: Context) {
         }
 
         if (!isMetaDataSet) {
-            isMetaDataSet = isSliceSet && isModelDataSet
+            isMetaDataSet = isModelDataSet
         }
 
         if (statusChanged) {
@@ -397,7 +468,6 @@ class PodsScanner(private val context: Context) {
             device.setMetadata(
                 device.METADATA_MAIN_BATTERY, (batteryUnified.toString() + "").toByteArray()
             )
-            Log.i("Art_Chen", "statusChanged main battery $batteryUnified")
 
             broadcastVendorSpecificEventIntent(
                 VENDOR_SPECIFIC_HEADSET_EVENT_IPHONEACCEV,
