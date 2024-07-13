@@ -17,8 +17,6 @@ import android.util.Log
 import androidx.core.content.FileProvider
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.constructor
-import com.highcapable.yukihookapi.hook.xposed.bridge.resources.YukiResForwarder
-import com.highcapable.yukihookapi.hook.xposed.bridge.resources.YukiResources
 import de.robv.android.xposed.XposedHelpers
 import moe.chenxy.hyperpods.utils.SystemApisUtils
 import moe.chenxy.hyperpods.utils.SystemApisUtils.cancelAsUser

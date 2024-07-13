@@ -285,8 +285,11 @@ object SystemApisUtils {
     val BluetoothDevice.METADATA_GTBS_CCCD: Int
         get() = 28
 
-    val BATTERY_LEVEL_UNKNOWN: Int
-        get() = -1
+    const val BATTERY_LEVEL_UNKNOWN: Int = -1
+
+    const val ACTION_BLUETOOTH_HANDSFREE_BATTERY_CHANGED = "android.intent.action.BLUETOOTH_HANDSFREE_BATTERY_CHANGED"
+    const val EXTRA_SHOW_BT_HANDSFREE_BATTERY = "android.intent.extra.show_bluetooth_handsfree_battery"
+    const val EXTRA_BT_HANDSFREE_BATTERY_LEVEL = "android.intent.extra.bluetooth_handsfree_battery_level"
 
     fun getUserAllUserHandle() : UserHandle {
         return XposedHelpers.getStaticObjectField(UserHandle::class.java, "ALL") as UserHandle

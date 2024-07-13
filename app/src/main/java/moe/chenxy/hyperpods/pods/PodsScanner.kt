@@ -27,7 +27,11 @@ import moe.chenxy.hyperpods.Constants
 import moe.chenxy.hyperpods.pods.models.RegularPods
 import moe.chenxy.hyperpods.pods.models.SinglePods
 import moe.chenxy.hyperpods.utils.MediaControl
+import moe.chenxy.hyperpods.utils.SystemApisUtils.ACTION_BLUETOOTH_HANDSFREE_BATTERY_CHANGED
+import moe.chenxy.hyperpods.utils.SystemApisUtils.BATTERY_LEVEL_UNKNOWN
 import moe.chenxy.hyperpods.utils.SystemApisUtils.DEVICE_TYPE_UNTETHERED_HEADSET
+import moe.chenxy.hyperpods.utils.SystemApisUtils.EXTRA_BT_HANDSFREE_BATTERY_LEVEL
+import moe.chenxy.hyperpods.utils.SystemApisUtils.EXTRA_SHOW_BT_HANDSFREE_BATTERY
 import moe.chenxy.hyperpods.utils.SystemApisUtils.METADATA_DEVICE_TYPE
 import moe.chenxy.hyperpods.utils.SystemApisUtils.METADATA_IS_UNTETHERED_HEADSET
 import moe.chenxy.hyperpods.utils.SystemApisUtils.METADATA_MAIN_BATTERY
@@ -527,6 +531,13 @@ class PodsScanner(private val context: Context, private val moduleResources: Yuk
             Intent(ACTION_ASI_UPDATE_BLUETOOTH_DATA).setPackage(PACKAGE_ASI)
         statusIntent.putExtra(ACTION_BATTERY_LEVEL_CHANGED, intent)
         context.sendBroadcastAsUser(statusIntent, getUserAllUserHandle())
+
+        // Update HyperOS Status Bar bluetooth battery icon
+        val statusBarIntent = Intent(ACTION_BLUETOOTH_HANDSFREE_BATTERY_CHANGED)
+        statusBarIntent.`package` = "com.android.systemui"
+        statusBarIntent.putExtra(EXTRA_SHOW_BT_HANDSFREE_BATTERY, batteryUnified != BATTERY_LEVEL_UNKNOWN)
+        statusBarIntent.putExtra(EXTRA_BT_HANDSFREE_BATTERY_LEVEL, if (batteryUnified != BATTERY_LEVEL_UNKNOWN) batteryUnifiedArg else BATTERY_LEVEL_UNKNOWN)
+        context.sendBroadcastAsUser(statusBarIntent, getUserAllUserHandle())
     }
 
     companion object {
