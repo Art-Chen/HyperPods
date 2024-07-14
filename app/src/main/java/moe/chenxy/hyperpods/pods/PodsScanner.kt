@@ -379,7 +379,7 @@ class PodsScanner(private val context: Context, private val moduleResources: Yuk
                     isAlreadyShowConnectedToast = true
                 } else {
                     // Low Batt
-                    if (!isAlreadyShowLeftLowBatt && !leftCharging && leftBattery <= regularPods.lowBattThreshold) {
+                    if (!isAlreadyShowLeftLowBatt && !leftCharging && leftBattery in 0 .. regularPods.lowBattThreshold) {
                         MiuiStrongToastUtil.showPodsBatteryToastByMiuiBt(
                             context,
                             leftBattery,
@@ -391,7 +391,7 @@ class PodsScanner(private val context: Context, private val moduleResources: Yuk
                             regularPods.lowBattThreshold
                         )
                         isAlreadyShowLeftLowBatt = true
-                    } else if (!isAlreadyShowRightLowBatt && !rightCharging && rightBattery <= regularPods.lowBattThreshold) {
+                    } else if (!isAlreadyShowRightLowBatt && !rightCharging && rightBattery in 0 .. regularPods.lowBattThreshold) {
                         MiuiStrongToastUtil.showPodsBatteryToastByMiuiBt(
                             context,
                             leftBattery,
@@ -403,7 +403,7 @@ class PodsScanner(private val context: Context, private val moduleResources: Yuk
                             regularPods.lowBattThreshold
                         )
                         isAlreadyShowRightLowBatt = true
-                    } else if (!isAlreadyShowCaseLowBatt && !caseCharging && caseBattery <= regularPods.lowBattThreshold) {
+                    } else if (!isAlreadyShowCaseLowBatt && !caseCharging && caseBattery in 0 .. regularPods.lowBattThreshold) {
                         MiuiStrongToastUtil.showPodsBatteryToastByMiuiBt(
                             context,
                             -1,
