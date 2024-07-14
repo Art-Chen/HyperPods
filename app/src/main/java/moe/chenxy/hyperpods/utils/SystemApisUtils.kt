@@ -2,6 +2,7 @@ package moe.chenxy.hyperpods.utils
 
 import android.app.Notification
 import android.app.NotificationManager
+import android.app.StatusBarManager
 import android.bluetooth.BluetoothDevice
 import android.os.UserHandle
 import de.robv.android.xposed.XposedHelpers
@@ -308,6 +309,10 @@ object SystemApisUtils {
     }
     fun NotificationManager.cancelAsUser(tag: String, id: Int, userHandle: UserHandle) {
         XposedHelpers.callMethod(this, "cancelAsUser", tag, id, userHandle)
+    }
+
+    fun StatusBarManager.setIconVisibility(iconName: String, show: Boolean) {
+        XposedHelpers.callMethod(this, "setIconVisibility", iconName, show)
     }
 
     private fun getPropByShell(propName: String): String {
