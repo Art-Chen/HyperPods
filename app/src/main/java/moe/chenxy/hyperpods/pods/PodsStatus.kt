@@ -72,23 +72,31 @@ class PodsStatus {
         val idFull = status.substring(6, 10)
 
         // Detect which model
-        if ("0220" == idFull) {
-            airpods = AirPods1(color, leftPod, rightPod, casePod) // Airpods 1st gen
-        } else if ("0F20" == idFull) {
-            airpods = AirPods2(color, leftPod, rightPod, casePod) // Airpods 2nd gen
-        } else if ("1320" == idFull) {
-            airpods = AirPods3(color, leftPod, rightPod, casePod) // Airpods 3rd gen
-        } else if ("0E20" == idFull) {
-            airpods = AirPodsPro(color, leftPod, rightPod, casePod) // Airpods Pro
-        } else if ("1420" == idFull) {
-            airpods = AirPodsPro2(color, leftPod, rightPod, casePod) // Airpods Pro 2
-        } else if ("2420" == idFull) {
-            airpods =
-                AirPodsPro2UsbC(
-                    color, leftPod, rightPod, casePod
-                ) // Airpods Pro 2 with USB‐C
-        } else if ("0A20" == idFull) {
-            airpods = AirPodsMax(color, singlePod) // Airpods Max
+        when (idFull) {
+            "0220" -> {
+                airpods = AirPods1(color, leftPod, rightPod, casePod) // Airpods 1st gen
+            }
+            "0F20" -> {
+                airpods = AirPods2(color, leftPod, rightPod, casePod) // Airpods 2nd gen
+            }
+            "1320" -> {
+                airpods = AirPods3(color, leftPod, rightPod, casePod) // Airpods 3rd gen
+            }
+            "0E20" -> {
+                airpods = AirPodsPro(color, leftPod, rightPod, casePod) // Airpods Pro
+            }
+            "1420" -> {
+                airpods = AirPodsPro2(color, leftPod, rightPod, casePod) // Airpods Pro 2
+            }
+            "2420" -> {
+                airpods =
+                    AirPodsPro2UsbC(
+                        color, leftPod, rightPod, casePod
+                    ) // Airpods Pro 2 with USB‐C
+            }
+            "0A20" -> {
+                airpods = AirPodsMax(color, singlePod) // Airpods Max
+            }
         }
     }
 
