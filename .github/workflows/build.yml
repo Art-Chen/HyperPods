@@ -1,4 +1,4 @@
-name: Build HyperExtra
+name: Build HyperPods
 
 on:
   push:
@@ -65,7 +65,7 @@ jobs:
         if: ${{ env.SIGNING_KEY != '' }}
         uses: actions/upload-artifact@v4
         with:
-          name: HyperExtra
+          name: HyperPods
           path: ${{steps.sign_app.outputs.signedReleaseFile}}
 
       - name: Release apk
