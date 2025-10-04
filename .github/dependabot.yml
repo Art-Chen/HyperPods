@@ -4,7 +4,7 @@ updates:
     directory: "/"
     schedule:
       interval: daily
-    target-branch: main
+    target-branch: aap
     registries:
       - maven-google
       - gradle-plugin
@@ -14,7 +14,7 @@ updates:
           - "*"
 
   - package-ecosystem: github-actions
-    target-branch: main
+    target-branch: aap
     directory: /
     schedule:
       interval: daily
