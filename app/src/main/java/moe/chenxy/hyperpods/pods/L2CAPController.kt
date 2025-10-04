@@ -335,11 +335,22 @@ object L2CAPController {
 
         val uuid = ParcelUuid.fromString("74ec2172-0bad-4d01-8f77-997b2be0722a")
 
+        fun getBtSocket(): BluetoothSocket {
+            try {
+                return BluetoothSocket::class.java.getDeclaredConstructor(IntType, BooleanType, BooleanType,
+                    BluetoothDevice::class.java, IntType,
+                    ParcelUuid::class.java).newInstance(3, true, true, device, 0x1001, uuid) as BluetoothSocket
+            } catch (_: NoSuchMethodException) {
+                Log.i(TAG, "get bt socket method failed, try android Baklava method")
+                return BluetoothSocket::class.java.getDeclaredConstructor(BluetoothDevice::class.java, IntType, BooleanType, BooleanType,
+                    IntType, ParcelUuid::class.java).newInstance(device, 3, true, true, 0x1001, uuid) as BluetoothSocket
+            }
+        }
+
         CoroutineScope(Dispatchers.IO).launch {
             delay(500)
-            socket = BluetoothSocket::class.java.getDeclaredConstructor(IntType, BooleanType, BooleanType,
-                BluetoothDevice::class.java, IntType,
-                ParcelUuid::class.java).newInstance(3, true, true, device, 0x1001, uuid) as BluetoothSocket
+            socket = getBtSocket()
+
             Log.d(TAG, "connecting AirPods!")
             socket.connect()
 
