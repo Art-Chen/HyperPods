@@ -19,14 +19,14 @@ apksign {
 
 android {
     namespace = "moe.chenxy.hyperpods"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "moe.chenxy.hyperpods"
         minSdk = 35
-        targetSdk = 35
-        versionCode = 4
-        versionName = "2.0.1-AAP-V-HyperOS"
+        targetSdk = 36
+        versionCode = 5
+        versionName = "2.0.2-AAP-W-HyperOS3"
         externalNativeBuild {
             cmake {
                 cppFlags += ""
@@ -83,6 +83,9 @@ android {
             excludes += "**.properties"
             excludes += "**.bin"
             excludes += "kotlin-tooling-metadata.json"
+        }
+        jniLibs {
+            useLegacyPackaging = false
         }
     }
     externalNativeBuild {
