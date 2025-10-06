@@ -16,6 +16,7 @@ import de.robv.android.xposed.XposedHelpers
 import moe.chenxy.hyperpods.pods.L2CAPController
 import moe.chenxy.hyperpods.utils.SystemApisUtils.setIconVisibility
 import moe.chenxy.hyperpods.utils.miuiStrongToast.MiuiStrongToastUtil.cancelPodsNotificationByMiuiBt
+import moe.chenxy.hyperpods.utils.miuiStrongToast.MiuiStrongToastUtil.showPodConnectingByMiuiBt
 
 object HeadsetStateDispatcher : YukiBaseHooker() {
     private var isShowedToast = false
@@ -71,8 +72,8 @@ object HeadsetStateDispatcher : YukiBaseHooker() {
                                 ).show()
                                 return@post
                             }
+                            showPodConnectingByMiuiBt(context, device)
                             L2CAPController.connectPod(context, device, prefs)
-
                         } else if (currState == BluetoothHeadset.STATE_DISCONNECTING || currState == BluetoothHeadset.STATE_DISCONNECTED) {
                             statusBarManager.setIconVisibility("wireless_headset", false)
                             L2CAPController.disconnectedPod(context, device)

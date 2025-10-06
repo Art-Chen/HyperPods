@@ -1,7 +1,7 @@
 import android.app.PendingIntent
 import android.os.Bundle
 
-class StringToastBundle private constructor() {
+class DeviceNotificationBundle private constructor() {
 
     companion object {
         private var mBundle: Bundle = Bundle()
@@ -12,6 +12,7 @@ class StringToastBundle private constructor() {
         private var stringToastCategory: String? = null
         private var target: PendingIntent? = null
         private var param: String? = null
+        private var notifyId: String? = null
         private var duration: Long = 2500L
         private var level: Float = 0f
         private var rapidRate: Float = 0f
@@ -29,12 +30,15 @@ class StringToastBundle private constructor() {
         fun setCharge(charge: String?) = apply { this.charge = charge }
         fun setStringToastChargeFlag(stringToastChargeFlag: Int) = apply { this.stringToastChargeFlag = stringToastChargeFlag }
         fun setStatusBarStrongToast(statusBarStrongToast: String?) = apply { this.statusBarStrongToast = statusBarStrongToast }
+        fun setNotifyId(notifyId: String) = apply { this.notifyId = notifyId }
 
         fun onCreate(): Bundle {
             mBundle.putString("package_name", packageName)
             mBundle.putString("strong_toast_category", stringToastCategory)
             mBundle.putParcelable("target", target)
             mBundle.putString("param", param)
+            mBundle.putString("notifyId", notifyId)
+            mBundle.putString("island_param", param)
             mBundle.putLong("duration", duration)
             mBundle.putFloat("level", level)
             mBundle.putFloat("rapid_rate", rapidRate)

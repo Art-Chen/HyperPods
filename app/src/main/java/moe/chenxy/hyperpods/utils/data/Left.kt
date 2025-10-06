@@ -1,4 +1,4 @@
-package moe.chenxy.hyperpods.utils.miuiStrongToast.data
+package moe.chenxy.hyperpods.utils.data
 
 import kotlinx.serialization.Serializable
 
