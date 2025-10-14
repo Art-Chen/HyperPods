@@ -13,23 +13,28 @@ import android.content.IntentFilter
 import android.graphics.drawable.Icon
 import android.net.Uri
 import android.os.Bundle
+import android.os.Process
+import android.os.UserHandle
 import android.util.Log
 import androidx.core.content.FileProvider
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.constructor
 import com.hyperfocus.api.FocusApi
+import com.hyperfocus.api.IslandApi
 import de.robv.android.xposed.XposedHelpers
 import moe.chenxy.hyperpods.utils.SystemApisUtils
 import moe.chenxy.hyperpods.utils.SystemApisUtils.cancelAsUser
 import moe.chenxy.hyperpods.utils.SystemApisUtils.isHyperOS3
 import moe.chenxy.hyperpods.utils.SystemApisUtils.notifyAsUser
+import moe.chenxy.hyperpods.utils.data.BatteryParams
 import moe.chenxy.hyperpods.utils.miuiStrongToast.MiuiStrongToastUtil.showCaseBatteryToast
 import moe.chenxy.hyperpods.utils.miuiStrongToast.MiuiStrongToastUtil.showPodsBatteryToast
-import moe.chenxy.hyperpods.utils.data.BatteryParams
-import moe.chenxy.hyperpods.utils.miuiStrongToast.MiuiStrongToastUtil.showStringToast
+import org.json.JSONObject
 import java.io.File
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlin.math.min
+
 
 @SuppressLint("MissingPermission")
 object MiBluetoothToastHook : YukiBaseHooker(){
@@ -110,7 +115,7 @@ object MiBluetoothToastHook : YukiBaseHooker(){
             }
         }
 
-        fun buildNotification(bluetoothDevice: BluetoothDevice, context: Context, batteryParams: BatteryParams): Notification {
+        fun buildNotification(bluetoothDevice: BluetoothDevice, context: Context, batteryParams: BatteryParams): Notification.Builder {
             initResources(context)
 
             val address: String = bluetoothDevice.address
@@ -173,54 +178,123 @@ object MiBluetoothToastHook : YukiBaseHooker(){
                     context.getColor(
                         system_notification_accent_color
                     )
-                ).setExtras(bundle2).addAction(action).setVisibility(Notification.VISIBILITY_PUBLIC).build()
+                ).setExtras(bundle2).addAction(action).setVisibility(Notification.VISIBILITY_PUBLIC)
+        }
+
+        fun showConnectedToast(bluetoothDevice: BluetoothDevice, context: Context) {
+            initResources(context)
+            val notificationManager = context.getSystemService("notification") as NotificationManager
+            val connectedStrID = context.resources.getIdentifier("headset_autoswitch_connected", "string", "com.xiaomi.bluetooth")
+
+            val baseInfo = focusApi.baseinfo(title = bluetoothDevice.name,
+                basetype = 0, content = context.getString(connectedStrID))
+            val api = focusApi.sendFocus(
+                title = "BTHeadset${bluetoothDevice.address}-connect",
+                cancel = false,
+                isShowNotification = false,
+                showSmallIcon = false,
+                baseInfo = baseInfo,
+                enableFloat = true,
+                reopen = "true", // allow notify again after notification cleaned
+                picInfo = Icon.createWithResource(context, earphone_drawable),
+                picInfotype = 2,
+                timeout = 1000,
+                ticker = context.getString(connectedStrID),
+                picticker = Icon.createWithResource(context, earphone_drawable)
+            )
+            val a = Bundle()
+            a.putString("miui.effect.src","true")
+            a.putAll(api)
+
+            notificationManager.createNotificationChannel(
+                NotificationChannel(
+                    "HEADSET_CONNECT_NOTIFICATION",
+                    "HEADSET_CONNECT_NOTIFICATION",
+                    NotificationManager.IMPORTANCE_DEFAULT
+                )
+            )
+
+            val notificationBuild: Notification =
+                Notification.Builder(context, "HEADSET_CONNECT_NOTIFICATION")
+                    .setSmallIcon(earphone_drawable).addExtras(a).build()
+
+            notificationManager.notifyAsUser(
+                "HEADSET_CONNECT_NOTIFICATION",
+                1001,
+                notificationBuild,
+                Process.myUserHandle()
+            )
         }
 
         fun createPodsNotificationOS3(bluetoothDevice: BluetoothDevice, context: Context, batteryParams: BatteryParams) {
-//            val sendNotification = buildNotification(bluetoothDevice, context, batteryParams)
-//            val bundle = Bundle()
-//            bundle.putParcelable("Device", bluetoothDevice)
-//            val actionIntent = Intent("com.android.bluetooth.headset.notification").apply {
-//                putExtra("btData", bundle)
-//                putExtra("disconnect", "1")
-//                identifier = "BTHeadset${bluetoothDevice.address}"
-//            }
-//
-//            val picProfiles = focusApi.addpics("icon",Icon.createWithResource(context, earphone_drawable))
-//            val pics = Bundle()
-//            pics.putAll(picProfiles)
-//            val actions = focusApi.actionInfo(actionIntent = actionIntent, actionTitle = context.resources
-//                .getString(miheadset_notification_Disconnect))
-//            val baseInfo = focusApi.baseinfo(title = "title", colorTitle = "#FFFFFF",
-//                basetype = 1, content = "content", colorContent = "#FFFFFF", subContent = "subContent",
-//                colorSubContent = "#FFFFFF", extraTitle = "extraTitle", colorExtraTitle = "#FFFFFF",
-//                subTitle = "subTitle", colorsubTitle = "#FFFFFF",
-//                specialTitle = "special", colorSpecialTitle = "#FFFFFF",
-//                picFunction = "icon")
-//            val hintInfo = focusApi.hintInfo(type = 1 ,
-//                titleLineCount = 6,
-//                title = "这是Hint里的title", colortitle = "#FFFFFF" ,
-//                content = "content",  colorContent = "#FFFFFF",
-//                actionInfo = actions)
-//            val api = focusApi.sendFocus(
-//                title = "测试",
-//                cancel = false,
-//                baseInfo = baseInfo,
-//                hintInfo = hintInfo,
-//                addpics = pics,
-//                enableFloat = true,
-//                picbg = Icon.createWithResource(this,R.drawable.lycaon_bg_2),
-//                picInfo = Icon.createWithResource(this,R.drawable.wdlyjz),
-//                picbgtype = 2,
-//                picInfotype = 2,
-//                ticker = "ticker测试",
-//                picticker = Icon.createWithResource(this,R.drawable.ic_launcher_foreground)
-//            )
-//            val a = Bundle()
-//            a.putString("miui.effect.src","true")
-//            a.putAll(api)
-//            sendNotification.addExtras(a)
-//            NotificationManagerCompat.from(this).notify(1, sendNotification.build())
+            val sendNotification = buildNotification(bluetoothDevice, context, batteryParams)
+            val bundle = Bundle()
+            bundle.putParcelable("Device", bluetoothDevice)
+            val actionIntent = Intent("com.android.bluetooth.headset.notification")
+
+            actionIntent.putExtra("btData", bundle)
+            actionIntent.putExtra("disconnect", "1")
+            actionIntent.identifier = "BTHeadset${bluetoothDevice.address}"
+
+            val picProfiles = focusApi.addpics("icon",Icon.createWithResource(context, earphone_drawable))
+            val pics = Bundle()
+            pics.putAll(picProfiles)
+            val actions = focusApi.actionInfo(actionIntent = actionIntent, actionIntentType = "2", actionTitle = context.resources
+                .getString(miheadset_notification_Disconnect))
+            var minBatteryLevel =
+                if (batteryParams.left?.isConnected == true && batteryParams.right?.isConnected == true)
+                    min(batteryParams.left?.battery!!, batteryParams.right?.battery!!)
+                else if (batteryParams.left?.isConnected == true) {
+                    batteryParams.left?.battery
+                } else if (batteryParams.right?.isConnected == true) {
+                    batteryParams.right?.battery
+                }
+                else 0
+
+            if (minBatteryLevel == -1) minBatteryLevel = 0
+
+            val caseBattStr =
+                "${context.resources.getString(miheadset_notification_Box)}：" + if (batteryParams.case!!.isConnected) "${batteryParams.case!!.battery} %" else "- %" +
+                        "${if (batteryParams.case!!.isCharging) " ⚡" else ""}\n"
+            val leftEar = if (batteryParams.left!!.isConnected) "${context.resources.getString(miheadset_notification_LeftEar)}：${batteryParams.left!!.battery} %" +
+                    (if (batteryParams.left!!.isCharging) " ⚡" else "") else ""
+            val leftToRight = if (batteryParams.left!!.isConnected && batteryParams.right!!.isConnected) " | " else ""
+            val rightEar = if (batteryParams.right!!.isConnected) "$leftToRight${context.resources.getString(miheadset_notification_RightEar)}：${batteryParams.right!!.battery} %" +
+                    (if (batteryParams.right!!.isCharging) " ⚡" else "") else ""
+
+            val baseInfo = focusApi.baseinfo(title = "$leftEar$rightEar",
+                basetype = 1, content = caseBattStr)
+            val hintInfo = focusApi.hintInfo(type = 2,
+                titleLineCount = 1,
+                title = bluetoothDevice.name,
+                content = "HyperPods",
+                actionInfo = actions)
+            val api = focusApi.sendFocus(
+                title = "BTHeadset${bluetoothDevice.address}",
+                cancel = false,
+                baseInfo = baseInfo,
+                hintInfo = hintInfo,
+                enableFloat = false,
+                reopen = "true", // allow notify again after notification cleaned
+                picInfo = Icon.createWithResource(context, earphone_drawable),
+                picInfotype = 2,
+                timeout = 1000,
+                ticker = "$minBatteryLevel %",
+                picticker = Icon.createWithResource(context, earphone_drawable)
+            )
+            val a = Bundle()
+            a.putString("miui.effect.src","true")
+            a.putAll(api)
+            sendNotification.addExtras(a)
+            sendNotification.setOngoing(true)
+            val notificationManager = context.getSystemService("notification") as NotificationManager
+            notificationManager.cancelAsUser("HEADSET_CONNECT_NOTIFICATION", 1001, Process.myUserHandle())
+            notificationManager.notifyAsUser(
+                "BTHeadset${bluetoothDevice.address}",
+                10003,
+                sendNotification.build(),
+                Process.myUserHandle()
+            )
         }
 
         @SuppressLint("WrongConstant")
@@ -229,7 +303,7 @@ object MiBluetoothToastHook : YukiBaseHooker(){
                 Log.e("Art_Chen", "createPodsNotification: btDevice null");
                 return
             }
-            if (isHyperOS3) createPodsNotificationOS3(bluetoothDevice!!, context, batteryParams)
+            if (isHyperOS3) return createPodsNotificationOS3(bluetoothDevice, context, batteryParams)
 
             try {
                 val address: String = bluetoothDevice.address
@@ -242,7 +316,7 @@ object MiBluetoothToastHook : YukiBaseHooker(){
                 notificationManager.notifyAsUser(
                     "BTHeadset$address",
                     10003,
-                    buildNotification(bluetoothDevice, context, batteryParams),
+                    buildNotification(bluetoothDevice, context, batteryParams).build(),
                     SystemApisUtils.getUserAllUserHandle()
                 )
             } catch (e: Exception) {
@@ -255,7 +329,8 @@ object MiBluetoothToastHook : YukiBaseHooker(){
                 val address = bluetoothDevice.address
                 if (address.isNotEmpty()) {
                     val notificationManager = context.getSystemService("notification") as NotificationManager
-                    notificationManager.cancelAsUser("BTHeadset$address", 10003, SystemApisUtils.getUserAllUserHandle())
+                    notificationManager.cancelAsUser("BTHeadset$address", 10003, Process.myUserHandle())
+                    notificationManager.cancelAsUser("HEADSET_CONNECT_NOTIFICATION", 1001, Process.myUserHandle())
                 }
             } catch (e: Exception) {
                 Log.e("Art_Chen", "Failed to cancel Pod Notification!", e)
@@ -326,7 +401,8 @@ object MiBluetoothToastHook : YukiBaseHooker(){
                                 cancelNotification(device, context)
                             } else if (p1?.action == "chen.action.hyperpods.podconnecting") {
                                 val device = p1.getParcelableExtra("device", BluetoothDevice::class.java) as BluetoothDevice
-                                XposedHelpers.callMethod(mThiz, "showConnectingToast", device.name, true, "00000000")
+//                                XposedHelpers.callMethod(mThiz, "showConnectingToast", device.name, true, "00000000")
+                                showConnectedToast(device, context)
                             }
                         }
 

@@ -31,11 +31,11 @@ import moe.chenxy.hyperpods.utils.SystemApisUtils
 import moe.chenxy.hyperpods.utils.SystemApisUtils.setIconVisibility
 import moe.chenxy.hyperpods.utils.miuiStrongToast.MiuiStrongToastUtil
 import moe.chenxy.hyperpods.utils.miuiStrongToast.MiuiStrongToastUtil.cancelPodsNotificationByMiuiBt
-import moe.chenxy.hyperpods.utils.miuiStrongToast.data.BatteryParams
-import moe.chenxy.hyperpods.utils.miuiStrongToast.data.EarDetectionParams
-import moe.chenxy.hyperpods.utils.miuiStrongToast.data.HyperPodsAction
-import moe.chenxy.hyperpods.utils.miuiStrongToast.data.HyperPodsPrefsKey
-import moe.chenxy.hyperpods.utils.miuiStrongToast.data.PodParams
+import moe.chenxy.hyperpods.utils.data.BatteryParams
+import moe.chenxy.hyperpods.utils.data.EarDetectionParams
+import moe.chenxy.hyperpods.utils.data.HyperPodsAction
+import moe.chenxy.hyperpods.utils.data.HyperPodsPrefsKey
+import moe.chenxy.hyperpods.utils.data.PodParams
 import java.util.concurrent.Executor
 
 @SuppressLint("MissingPermission", "StaticFieldLeak")
@@ -59,7 +59,7 @@ object L2CAPController {
     // Status
     private var mShowedConnectedToast = false
     private var lastCaseConnected = false
-    private var disconnectedAudio = false
+    private var disconnectedAudio = true /* default to true to connect audio first time always */
     private var pausedAudio = false
     private var lastTempBatt = 0
     lateinit var currentEarDetectionParams: EarDetectionParams
@@ -142,6 +142,9 @@ object L2CAPController {
             HyperPodsAction.ACTION_EAR_DETECTION_SWITCH_CHANGED -> {
                 earDetection = intent.getBooleanExtra("ear_detection", true)
                 disconnectAudio = intent.getBooleanExtra("disconnect_audio", true)
+            }
+            HyperPodsAction.ACTION_PODS_SETTINGS_CHANGED -> {
+                intent.getStringExtra("key")?.let { handleUISettingsChanged(it) }
             }
         }
     }
@@ -257,6 +260,38 @@ object L2CAPController {
         setRegularBatteryLevel(lastTempBatt)
     }
 
+    fun handleUISettingsChanged(key: String) {
+        when (key) {
+            HyperPodsPrefsKey.PERSONLIZED_VOLUME -> {
+                setPersonVolumeEnabled(mPrefsBridge.getBoolean(key, false))
+            }
+            HyperPodsPrefsKey.CASE_CHARGING_SOUND -> {
+                setCaseChargingSounds(mPrefsBridge.getBoolean(key, true))
+            }
+            HyperPodsPrefsKey.ADAPTIVE_AUDIO_LEVEL -> {
+                setAdaptiveStrength((mPrefsBridge.getFloat(key, 0.5f) * 100).toInt())
+            }
+            HyperPodsPrefsKey.CONVERSATION_AWARENESS -> {
+                setCAEnabled(mPrefsBridge.getBoolean(key, false))
+            }
+            HyperPodsPrefsKey.LOUD_SOUND_REDUCTION -> {
+                setLoudSoundReduction(mPrefsBridge.getBoolean(key, false))
+            }
+            HyperPodsPrefsKey.ADJUST_VOLUME_BY_SWIPER -> {
+                setVolumeControl(mPrefsBridge.getBoolean(key, false))
+            }
+            HyperPodsPrefsKey.LONG_PRESS_MODE_LEFT -> {
+                updateLongPress(mPrefsBridge.getInt(key, 0), null)
+            }
+            HyperPodsPrefsKey.LONG_PRESS_MODE_RIGHT -> {
+                updateLongPress(
+                    mPrefsBridge.getInt(HyperPodsPrefsKey.LONG_PRESS_MODE_LEFT, 0),
+                    mPrefsBridge.getInt(key, 0)
+                )
+            }
+        }
+    }
+
     @OptIn(ExperimentalStdlibApi::class)
     fun handleAirPodsPacket(packet: ByteArray) {
         if (AirPodsNotifications.EarDetection.isEarDetectionData(packet)) {
@@ -322,6 +357,7 @@ object L2CAPController {
             this.addAction(HyperPodsAction.ACTION_PODS_UI_INIT)
             this.addAction(HyperPodsAction.ACTION_EAR_DETECTION_SWITCH_CHANGED)
             this.addAction(HyperPodsAction.ACTION_GET_PODS_MAC)
+            this.addAction(HyperPodsAction.ACTION_PODS_SETTINGS_CHANGED)
         }, Context.RECEIVER_EXPORTED)
 
         Intent(HyperPodsAction.ACTION_PODS_CONNECTED).apply {
@@ -352,7 +388,15 @@ object L2CAPController {
             socket = getBtSocket()
 
             Log.d(TAG, "connecting AirPods!")
-            socket.connect()
+            try {
+                socket.connect()
+            } catch (e: Exception) {
+                Log.e(TAG, "failed to connect to socket, retry!", e)
+                connectPod(context, mDevice, mPrefsBridge)
+
+                return@launch
+            }
+
 
             Log.d(TAG, "connected!")
             socket.outputStream.write(Enums.HANDSHAKE.value)
@@ -396,15 +440,22 @@ object L2CAPController {
 
         mShowedConnectedToast = false
         pausedAudio = false
-        disconnectedAudio = false
-        mContext = null
-        MediaControl.mContext = null
+//        disconnectedAudio = false
+//        mContext = null
+//        MediaControl.mContext = null
     }
 
     fun sendPacket(packet: String) {
         val fromHex = packet.split(" ").map { it.toInt(16).toByte() }
         socket.outputStream?.write(fromHex.toByteArray())
         socket.outputStream?.flush()
+    }
+
+    fun sendPacket(packet: ByteArray) {
+        if (this::socket.isInitialized && socket.isConnected && socket.outputStream != null) {
+            socket.outputStream?.write(packet)
+            socket.outputStream?.flush()
+        }
     }
 
     fun setANCMode(mode: Int) {
@@ -440,52 +491,89 @@ object L2CAPController {
         socket.outputStream?.flush()
     }
 
-    fun setAdaptiveStrength(strength: Int) {
-        val bytes = byteArrayOf(0x04, 0x00, 0x04, 0x00, 0x09, 0x00, 0x2E, strength.toByte(), 0x00, 0x00, 0x00)
-        socket.outputStream?.write(bytes)
-        socket.outputStream?.flush()
-    }
-
-    fun setPressSpeed(speed: Int) {
-        val bytes = byteArrayOf(0x04, 0x00, 0x04, 0x00, 0x09, 0x00, 0x17, speed.toByte(), 0x00, 0x00, 0x00)
-        socket.outputStream?.write(bytes)
-        socket.outputStream?.flush()
-    }
-
-    fun setPressAndHoldDuration(speed: Int) {
-        val bytes = byteArrayOf(0x04, 0x00, 0x04, 0x00, 0x09, 0x00, 0x18, speed.toByte(), 0x00, 0x00, 0x00)
-        socket.outputStream?.write(bytes)
-        socket.outputStream?.flush()
-    }
-
-    fun setNoiseCancellationWithOnePod(enabled: Boolean) {
-        val bytes = byteArrayOf(0x04, 0x00, 0x04, 0x00, 0x09, 0x00, 0x1B, if (enabled) 0x01 else 0x02, 0x00, 0x00, 0x00)
-        socket.outputStream?.write(bytes)
-        socket.outputStream?.flush()
-    }
-
-    fun setVolumeControl(enabled: Boolean) {
-        val bytes = byteArrayOf(0x04, 0x00, 0x04, 0x00, 0x09, 0x00, 0x25, if (enabled) 0x01 else 0x02, 0x00, 0x00, 0x00)
-        socket.outputStream?.write(bytes)
-        socket.outputStream?.flush()
-    }
-
-    fun setVolumeSwipeSpeed(speed: Int) {
-        val bytes = byteArrayOf(0x04, 0x00, 0x04, 0x00, 0x09, 0x00, 0x23, speed.toByte(), 0x00, 0x00, 0x00)
-        socket.outputStream?.write(bytes)
-        socket.outputStream?.flush()
-    }
-
-    fun setToneVolume(volume: Int) {
-        val bytes = byteArrayOf(0x04, 0x00, 0x04, 0x00, 0x09, 0x00, 0x1F, volume.toByte(), 0x50, 0x00, 0x00)
-        socket.outputStream?.write(bytes)
-        socket.outputStream?.flush()
-    }
-
     fun setCaseChargingSounds(enabled: Boolean) {
         val bytes = byteArrayOf(0x12, 0x3a, 0x00, 0x01, 0x00, 0x08, if (enabled) 0x00 else 0x01)
         socket.outputStream?.write(bytes)
         socket.outputStream?.flush()
+    }
+
+    fun setAdaptiveStrength(strength: Int) {
+        val bytes =
+            byteArrayOf(
+                0x04,
+                0x00,
+                0x04,
+                0x00,
+                0x09,
+                0x00,
+                0x2E,
+                strength.toByte(),
+                0x00,
+                0x00,
+                0x00
+            )
+        sendPacket(bytes)
+    }
+
+    fun setPressSpeed(speed: Int) {
+        // 0x00 = default, 0x01 = slower, 0x02 = slowest
+        val bytes =
+            byteArrayOf(0x04, 0x00, 0x04, 0x00, 0x09, 0x00, 0x17, speed.toByte(), 0x00, 0x00, 0x00)
+        sendPacket(bytes)
+    }
+
+    fun setPressAndHoldDuration(speed: Int) {
+        // 0 - default, 1 - slower, 2 - slowest
+        val bytes =
+            byteArrayOf(0x04, 0x00, 0x04, 0x00, 0x09, 0x00, 0x18, speed.toByte(), 0x00, 0x00, 0x00)
+        sendPacket(bytes)
+    }
+
+    fun setVolumeSwipeSpeed(speed: Int) {
+        // 0 - default, 1 - longer, 2 - longest
+        val bytes =
+            byteArrayOf(0x04, 0x00, 0x04, 0x00, 0x09, 0x00, 0x23, speed.toByte(), 0x00, 0x00, 0x00)
+        sendPacket(bytes)
+    }
+
+    fun setNoiseCancellationWithOnePod(enabled: Boolean) {
+        val bytes = byteArrayOf(
+            0x04,
+            0x00,
+            0x04,
+            0x00,
+            0x09,
+            0x00,
+            0x1B,
+            if (enabled) 0x01 else 0x02,
+            0x00,
+            0x00,
+            0x00
+        )
+        sendPacket(bytes)
+    }
+
+    fun setVolumeControl(enabled: Boolean) {
+        val bytes = byteArrayOf(
+            0x04,
+            0x00,
+            0x04,
+            0x00,
+            0x09,
+            0x00,
+            0x25,
+            if (enabled) 0x01 else 0x02,
+            0x00,
+            0x00,
+            0x00
+        )
+        sendPacket(bytes)
+    }
+
+    fun setToneVolume(volume: Int) {
+        val bytes =
+            byteArrayOf(0x04, 0x00, 0x04, 0x00, 0x09, 0x00, 0x1F, volume.toByte(), 0x50, 0x00, 0x00)
+        sendPacket(bytes)
     }
 
     fun disconnectAudio(context: Context, device: BluetoothDevice?) {
@@ -567,30 +655,70 @@ object L2CAPController {
             nameBytes.size.toByte(), 0x00) + nameBytes
         socket.outputStream?.write(bytes)
         socket.outputStream?.flush()
-        val hex = bytes.joinToString(" ") { "%02X".format(it) }
-        Log.d("AirPodsService", "setName: $name, sent packet: $hex")
     }
 
-    fun setPVEnabled(enabled: Boolean) {
+    fun setPersonVolumeEnabled(enabled: Boolean) {
         var hex = "04 00 04 00 09 00 26 ${if (enabled) "01" else "02"} 00 00 00"
         var bytes = hex.split(" ").map { it.toInt(16).toByte() }.toByteArray()
-        socket.outputStream?.write(bytes)
-        socket.outputStream?.flush()
-        hex = "04 00 04 00 17 00 00 00 10 00 12 00 08 E${if (enabled) "6" else "5"} 05 10 02 42 0B 08 50 10 02 1A 05 02 ${if (enabled) "32" else "00"} 00 00 00"
+        sendPacket(bytes)
+        hex =
+            "04 00 04 00 17 00 00 00 10 00 12 00 08 E${if (enabled) "6" else "5"} 05 10 02 42 0B 08 50 10 02 1A 05 02 ${if (enabled) "32" else "00"} 00 00 00"
         bytes = hex.split(" ").map { it.toInt(16).toByte() }.toByteArray()
-        socket.outputStream?.write(bytes)
-        socket.outputStream?.flush()
+        sendPacket(bytes)
     }
 
     fun setLoudSoundReduction(enabled: Boolean) {
         val hex = "52 1B 00 0${if (enabled) "1" else "0"}"
         val bytes = hex.split(" ").map { it.toInt(16).toByte() }.toByteArray()
-        socket.outputStream?.write(bytes)
-        socket.outputStream?.flush()
+        sendPacket(bytes)
     }
 
     fun setRegularBatteryLevel(level: Int) {
         val service = XposedHelpers.getObjectField(mContext, "mAdapterService")
         XposedHelpers.callMethod(service, "setBatteryLevel", mDevice, level, false)
+    }
+
+    fun findChangedIndex(oldArray: BooleanArray, newArray: BooleanArray): Int {
+        for (i in oldArray.indices) {
+            if (oldArray[i] != newArray[i]) {
+                return i
+            }
+        }
+        return -1
+    }
+
+    fun updateLongPress(left: Int, right: Int?) {
+
+    }
+
+    fun updateAncLongPress(
+        oldLongPressArray: BooleanArray,
+        newLongPressArray: BooleanArray,
+    ) {
+        if (oldLongPressArray.contentEquals(newLongPressArray)) {
+            return
+        }
+        val oldModes = mutableSetOf<LongPressMode>()
+        val newModes = mutableSetOf<LongPressMode>()
+
+        if (oldLongPressArray[0]) oldModes.add(LongPressMode.OFF)
+        if (oldLongPressArray[1]) oldModes.add(LongPressMode.ANC)
+        if (oldLongPressArray[2]) oldModes.add(LongPressMode.TRANSPARENCY)
+        if (oldLongPressArray[3]) oldModes.add(LongPressMode.ADAPTIVE)
+
+        if (newLongPressArray[0]) newModes.add(LongPressMode.OFF)
+        if (newLongPressArray[1]) newModes.add(LongPressMode.ANC)
+        if (newLongPressArray[2]) newModes.add(LongPressMode.TRANSPARENCY)
+        if (newLongPressArray[3]) newModes.add(LongPressMode.ADAPTIVE)
+
+        val changedIndex = findChangedIndex(oldLongPressArray, newLongPressArray)
+        if (changedIndex == -1) return
+
+        val newEnabled = newLongPressArray[changedIndex]
+
+        val packet = determinePacket(changedIndex, newEnabled, oldModes, newModes)
+        packet?.let {
+            sendPacket(it)
+        }
     }
 }

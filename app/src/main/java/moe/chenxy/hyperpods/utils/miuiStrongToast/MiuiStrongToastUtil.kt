@@ -26,10 +26,14 @@ import moe.chenxy.hyperpods.utils.data.Left
 import moe.chenxy.hyperpods.utils.data.Right
 import moe.chenxy.hyperpods.utils.data.StrongToastBean
 import moe.chenxy.hyperpods.utils.data.TextParams
+import androidx.core.graphics.toColorInt
 
 @SuppressLint("WrongConstant")
 object MiuiStrongToastUtil {
     var lastPodsTimestamp = -1L
+    val colorGreen = "#FF34C759".toColorInt()
+    val colorRed = "#FFFF3B30".toColorInt()
+
     fun showStringToast(context: Context, text: String?, colorType: Int) {
         if (!isHyperOS) {
             Handler(Looper.getMainLooper()).post {
@@ -63,7 +67,7 @@ object MiuiStrongToastUtil {
         if (!isHyperOS) {
             return
         }
-        val caseText = TextParams("$case %", if (caseCharging) Color.GREEN else if (case <= lowBatteryThreshold) Color.RED else Color.WHITE)
+        val caseText = TextParams("$case %", if (caseCharging) colorGreen else if (case <= lowBatteryThreshold) colorRed else Color.WHITE)
         val caseVideo = IconParams(Category.RAW, FileType.MP4, caseMp4Uri.toString(), 1)
         val left = Left(iconParams = caseVideo)
         val right = Right(textParams = caseText)
@@ -107,10 +111,10 @@ object MiuiStrongToastUtil {
         val caseCharging = batteryParams.case!!.isCharging
 
         val leftText =
-            if (batteryParams.left!!.isConnected) TextParams("$left %", if (leftCharging) Color.GREEN else if (left <= lowBatteryThreshold) Color.RED else Color.WHITE, turnAnim = true) else null
+            if (batteryParams.left!!.isConnected) TextParams("$left %", if (leftCharging) colorGreen else if (left <= lowBatteryThreshold) colorRed else Color.WHITE, turnAnim = true) else null
         val leftVideo = IconParams(Category.RAW, FileType.MP4, leftVideoUri.toString(), 1)
         val rightText =
-            if (batteryParams.right!!.isConnected) TextParams( "$right %", if (rightCharging) Color.GREEN else if (right <= lowBatteryThreshold) Color.RED else Color.WHITE, turnAnim = true) else null
+            if (batteryParams.right!!.isConnected) TextParams( "$right %", if (rightCharging) colorGreen else if (right <= lowBatteryThreshold) colorRed else Color.WHITE, turnAnim = true) else null
         val rightVideo = IconParams(Category.RAW, FileType.MP4, rightVideoUri.toString(), 1)
         val l = Left(textParams = leftText, iconParams = leftVideo)
         val r = Right(textParams = rightText, iconParams = rightVideo)
