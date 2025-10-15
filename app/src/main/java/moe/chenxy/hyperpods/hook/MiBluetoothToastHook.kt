@@ -14,13 +14,11 @@ import android.graphics.drawable.Icon
 import android.net.Uri
 import android.os.Bundle
 import android.os.Process
-import android.os.UserHandle
 import android.util.Log
 import androidx.core.content.FileProvider
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.constructor
 import com.hyperfocus.api.FocusApi
-import com.hyperfocus.api.IslandApi
 import de.robv.android.xposed.XposedHelpers
 import moe.chenxy.hyperpods.utils.SystemApisUtils
 import moe.chenxy.hyperpods.utils.SystemApisUtils.cancelAsUser
@@ -228,19 +226,30 @@ object MiBluetoothToastHook : YukiBaseHooker(){
 
         fun createPodsNotificationOS3(bluetoothDevice: BluetoothDevice, context: Context, batteryParams: BatteryParams) {
             val sendNotification = buildNotification(bluetoothDevice, context, batteryParams)
-            val bundle = Bundle()
-            bundle.putParcelable("Device", bluetoothDevice)
-            val actionIntent = Intent("com.android.bluetooth.headset.notification")
-
-            actionIntent.putExtra("btData", bundle)
-            actionIntent.putExtra("disconnect", "1")
-            actionIntent.identifier = "BTHeadset${bluetoothDevice.address}"
 
             val picProfiles = focusApi.addpics("icon",Icon.createWithResource(context, earphone_drawable))
             val pics = Bundle()
             pics.putAll(picProfiles)
-            val actions = focusApi.actionInfo(actionIntent = actionIntent, actionIntentType = "2", actionTitle = context.resources
-                .getString(miheadset_notification_Disconnect))
+//            val actions = focusApi.actionInfo(actionIntent = actionIntent, actionIntentType = "2", actionTitle = context.resources
+//                .getString(miheadset_notification_Disconnect))
+
+            val disconnectBundle = Bundle()
+            disconnectBundle.putParcelable("Device", bluetoothDevice)
+            val intent = Intent("com.android.bluetooth.headset.notification")
+            intent.putExtra("btData", disconnectBundle)
+            intent.putExtra("disconnect", "1")
+            intent.identifier = "BTHeadset${bluetoothDevice.address}"
+            val action = Notification.Action.Builder(
+                null,
+                context.resources
+                    .getString(miheadset_notification_Disconnect),
+                PendingIntent.getBroadcast(context, 0, intent,
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+            ).build()
+
+            val bundle = Bundle()
+            bundle.putParcelable("miui.focus.action_disconnect", action)
+
             var minBatteryLevel =
                 if (batteryParams.left?.isConnected == true && batteryParams.right?.isConnected == true)
                     min(batteryParams.left?.battery!!, batteryParams.right?.battery!!)
@@ -261,6 +270,8 @@ object MiBluetoothToastHook : YukiBaseHooker(){
             val leftToRight = if (batteryParams.left!!.isConnected && batteryParams.right!!.isConnected) " | " else ""
             val rightEar = if (batteryParams.right!!.isConnected) "$leftToRight${context.resources.getString(miheadset_notification_RightEar)}：${batteryParams.right!!.battery} %" +
                     (if (batteryParams.right!!.isCharging) " ⚡" else "") else ""
+            val actionObject = JSONObject()
+            actionObject.put("action", "miui.focus.action_disconnect")
 
             val baseInfo = focusApi.baseinfo(title = "$leftEar$rightEar",
                 basetype = 1, content = caseBattStr)
@@ -268,7 +279,7 @@ object MiBluetoothToastHook : YukiBaseHooker(){
                 titleLineCount = 1,
                 title = bluetoothDevice.name,
                 content = "HyperPods",
-                actionInfo = actions)
+                actionInfo = actionObject)
             val api = focusApi.sendFocus(
                 title = "BTHeadset${bluetoothDevice.address}",
                 cancel = false,
@@ -284,6 +295,7 @@ object MiBluetoothToastHook : YukiBaseHooker(){
             )
             val a = Bundle()
             a.putString("miui.effect.src","true")
+            a.putBundle("miui.focus.actions", bundle)
             a.putAll(api)
             sendNotification.addExtras(a)
             sendNotification.setOngoing(true)

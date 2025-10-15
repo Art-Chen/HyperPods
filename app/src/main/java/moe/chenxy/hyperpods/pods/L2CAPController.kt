@@ -95,7 +95,7 @@ object L2CAPController {
             this.putExtra("status", status)
             this.`package` = BuildConfig.APPLICATION_ID
             this.addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-            mContext!!.sendBroadcast(this)
+            mContext?.sendBroadcast(this)
         }
     }
 
@@ -104,7 +104,7 @@ object L2CAPController {
             this.putExtra("status", status)
             this.`package` = BuildConfig.APPLICATION_ID
             this.addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-            mContext!!.sendBroadcast(this)
+            mContext?.sendBroadcast(this)
         }
     }
 
@@ -113,7 +113,7 @@ object L2CAPController {
             this.putExtra("status", status)
             this.`package` = BuildConfig.APPLICATION_ID
             this.addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-            mContext!!.sendBroadcast(this)
+            mContext?.sendBroadcast(this)
         }
     }
 
@@ -131,7 +131,7 @@ object L2CAPController {
                 changeUIAncStatus(currentAnc)
                 Intent(HyperPodsAction.ACTION_PODS_CONNECTED).apply {
                     this.putExtra("device_name", mDevice.name)
-                    mContext!!.sendBroadcast(this)
+                    mContext?.sendBroadcast(this)
                 }
             }
             HyperPodsAction.ACTION_ANC_SELECT -> {
@@ -242,11 +242,11 @@ object L2CAPController {
 
         // allow show toast again when case status from disconnected to active, it means pods put in the case again
         if (shouldShowToast) {
-            MiuiStrongToastUtil.showPodsBatteryToastByMiuiBt(mContext!!, batteryParams)
+            MiuiStrongToastUtil.showPodsBatteryToastByMiuiBt(mContext, batteryParams)
             mShowedConnectedToast = true
         }
         lastCaseConnected = case.isConnected
-        MiuiStrongToastUtil.showPodsNotificationByMiuiBt(mContext!!, batteryParams, mDevice)
+        MiuiStrongToastUtil.showPodsNotificationByMiuiBt(mContext, batteryParams, mDevice)
         changeUIBatteryStatus(batteryParams)
 
         lastTempBatt = if (left.isConnected && right.isConnected)
@@ -343,6 +343,7 @@ object L2CAPController {
     private fun stopRoutesScan() {
         scanToken?.let { mediaRouter.cancelScanRequest(it) }
         mediaRouter.unregisterRouteCallback(routeCallback)
+        scanToken = null
     }
 
     fun connectPod(context: Context, device: BluetoothDevice, prefsBridge: YukiHookPrefsBridge) {
@@ -441,8 +442,8 @@ object L2CAPController {
         mShowedConnectedToast = false
         pausedAudio = false
 //        disconnectedAudio = false
-//        mContext = null
-//        MediaControl.mContext = null
+        mContext = null
+        MediaControl.mContext = null
     }
 
     fun sendPacket(packet: String) {
