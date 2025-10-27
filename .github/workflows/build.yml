@@ -63,7 +63,7 @@ jobs:
         env: 
            SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
         if: ${{ env.SIGNING_KEY != '' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: HyperPods
           path: ${{steps.sign_app.outputs.signedReleaseFile}}
