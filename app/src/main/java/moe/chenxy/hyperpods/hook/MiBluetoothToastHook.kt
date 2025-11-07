@@ -20,6 +20,7 @@ import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.constructor
 import com.hyperfocus.api.FocusApi
 import de.robv.android.xposed.XposedHelpers
+import moe.chenxy.hyperpods.BuildConfig
 import moe.chenxy.hyperpods.utils.SystemApisUtils
 import moe.chenxy.hyperpods.utils.SystemApisUtils.cancelAsUser
 import moe.chenxy.hyperpods.utils.SystemApisUtils.isHyperOS3
@@ -296,6 +297,7 @@ object MiBluetoothToastHook : YukiBaseHooker(){
             val a = Bundle()
             a.putString("miui.effect.src","true")
             a.putBundle("miui.focus.actions", bundle)
+            a.putCharSequence("miui.targetPkg", BuildConfig.APPLICATION_ID)
             a.putAll(api)
             sendNotification.addExtras(a)
             sendNotification.setOngoing(true)
@@ -362,7 +364,8 @@ object MiBluetoothToastHook : YukiBaseHooker(){
                     if (file.exists()) {
                         val file2 = File(file, "airpods_gen3_case.mp4")
                         if (file2.exists()) {
-                            file2.delete()
+                            if (Base64.encode(file2.readBytes(), 0) != CASE_MP4_BASE64)
+                                file2.delete()
                         }
                     }
 
