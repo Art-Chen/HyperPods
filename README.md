@@ -1,6 +1,6 @@
 ## HyperPods AAP
 
-HyperPods is an Xposed Module that enhance funtionality for non-Xiaomi headphones.
+HyperPods is an Xposed Module that enhance functionality for non-Xiaomi headphones.
 
 Currently supported below features:
 - Ear Detection
@@ -18,7 +18,13 @@ BLE listen is removed until we should support the other pods.
 `AAP` is a protocol made by **Apple Inc.** and used to communicate with AirPods.
 
 Express my gratitude to the following projects:
-* [aln](https://github.com/kavishdevar/aln): AAP Definition and many awesome functionalities.
+* [LibrePods](https://github.com/kavishdevar/librepods): AAP Definition and many awesome functionalities.
+
+## Note
+
+If you need more features or you're not a HyperOS user, please consider using [LibrePods](https://github.com/kavishdevar/librepods).
+
+LibrePods for HyperOS user enhancement is planed because they implemented most of all the features. Cheers. 
 
 ## License
 
