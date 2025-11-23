@@ -152,7 +152,7 @@ object MiuiStrongToastUtil {
     }
 
     fun showPodsBatteryToastByMiuiBt(
-        context: Context,
+        context: Context?,
         batteryParams: BatteryParams
     ) {
         val intent = Intent("chen.action.hyperpods.sendstrongtoast")
@@ -161,11 +161,11 @@ object MiuiStrongToastUtil {
 
         intent.`package` = "com.xiaomi.bluetooth"
 
-        context.sendBroadcast(intent)
+        context?.sendBroadcast(intent)
     }
 
     fun showPodsNotificationByMiuiBt(
-        context: Context,
+        context: Context?,
         batteryParams: BatteryParams,
         device: BluetoothDevice,
     ) {
@@ -176,7 +176,7 @@ object MiuiStrongToastUtil {
 
         intent.`package` = "com.xiaomi.bluetooth"
 
-        context.sendBroadcast(intent)
+        context?.sendBroadcast(intent)
     }
 
     fun cancelPodsNotificationByMiuiBt(

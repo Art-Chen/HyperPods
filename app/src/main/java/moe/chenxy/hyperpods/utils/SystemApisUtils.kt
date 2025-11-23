@@ -4,7 +4,10 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.app.StatusBarManager
 import android.bluetooth.BluetoothDevice
+import android.content.Context
 import android.os.UserHandle
+import android.os.VibrationEffect
+import android.os.VibratorManager
 import de.robv.android.xposed.XposedHelpers
 import java.io.BufferedReader
 import java.io.IOException
@@ -328,4 +331,14 @@ object SystemApisUtils {
         get() {
             return getPropByShell("ro.mi.os.version.code").isNotEmpty()
         }
+
+    val isHyperOS3: Boolean
+        get() {
+            return getPropByShell("ro.mi.os.version.code") == "3"
+        }
+
+    fun performVibrateClick(context: Context) {
+        val vibrator = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+        vibrator.defaultVibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_DOUBLE_CLICK))
+    }
 }

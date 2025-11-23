@@ -117,4 +117,6 @@ dependencies {
     implementation(compose.preview)
     debugImplementation(compose.uiTooling)
     implementation(libs.haze)
+    implementation(libs.hyperfocusapi)
+    implementation(libs.gaze.capsule)
 }

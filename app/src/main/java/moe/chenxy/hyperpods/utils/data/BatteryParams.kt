@@ -1,4 +1,4 @@
-package moe.chenxy.hyperpods.utils.miuiStrongToast.data
+package moe.chenxy.hyperpods.utils.data
 import android.annotation.SuppressLint
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
@@ -8,7 +8,7 @@ import moe.chenxy.hyperpods.pods.EarDetectionStatus
 @SuppressLint("UnsafeOptInUsageError")
 @Serializable
 @Parcelize
-data class PodParams (
+data class PodBatteryParams (
     var battery: Int = 0,
     var isCharging: Boolean = false,
     var isConnected: Boolean = false,
@@ -19,9 +19,9 @@ data class PodParams (
 @Serializable
 @Parcelize
 data class BatteryParams(
-    var left: PodParams? = null,
-    var right: PodParams? = null,
-    var case: PodParams? = null
+    var left: PodBatteryParams? = null,
+    var right: PodBatteryParams? = null,
+    var case: PodBatteryParams? = null
 ) : Parcelable
 
 @SuppressLint("UnsafeOptInUsageError")

@@ -104,7 +104,8 @@ class AirPodsNotifications {
     object ANC {
         private val notificationPrefix = Enums.NOISE_CANCELLATION_PREFIX.value
 
-        var status: Int = 0
+        var status: Int = 1
+            private set
 
         fun isANCData(data: ByteArray): Boolean {
             if (data.size != 11) {
@@ -116,18 +117,32 @@ class AirPodsNotifications {
         }
 
         fun setStatus(data: ByteArray) {
-            status = data[7].toInt()
+            when (data.size) {
+                // if the whole packet is given
+                11 -> {
+                    status = data[7].toInt()
+                }
+                // if only the data is given
+                1 -> {
+                    status = data[0].toInt()
+                }
+                // if the value of control command is given
+                4 -> {
+                    status = data[0].toInt()
+                }
+                else -> {
+                    Log.d("ANC", "Invalid ANC data size: ${data.size}")
+                }
+            }
         }
 
-        val name: String
-            get() {
-                return when (status) {
-                    1 -> "OFF"
-                    2 -> "ON"
-                    3 -> "TRANSPARENCY"
-                    4 -> "ADAPTIVE"
-                    else -> "UNKNOWN"
-                }
+        val name: String =
+            when (status) {
+                1 -> "OFF"
+                2 -> "ON"
+                3 -> "TRANSPARENCY"
+                4 -> "ADAPTIVE"
+                else -> "UNKNOWN"
             }
 
     }

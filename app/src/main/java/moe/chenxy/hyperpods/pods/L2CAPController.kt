@@ -26,6 +26,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import moe.chenxy.hyperpods.BuildConfig
+import moe.chenxy.hyperpods.utils.AACPManager
+import moe.chenxy.hyperpods.utils.AirPodsInstance
 import moe.chenxy.hyperpods.utils.MediaControl
 import moe.chenxy.hyperpods.utils.SystemApisUtils
 import moe.chenxy.hyperpods.utils.SystemApisUtils.setIconVisibility
@@ -35,8 +37,9 @@ import moe.chenxy.hyperpods.utils.data.BatteryParams
 import moe.chenxy.hyperpods.utils.data.EarDetectionParams
 import moe.chenxy.hyperpods.utils.data.HyperPodsAction
 import moe.chenxy.hyperpods.utils.data.HyperPodsPrefsKey
-import moe.chenxy.hyperpods.utils.data.PodParams
+import moe.chenxy.hyperpods.utils.data.PodBatteryParams
 import java.util.concurrent.Executor
+import kotlin.collections.get
 
 @SuppressLint("MissingPermission", "StaticFieldLeak")
 object L2CAPController {
@@ -50,6 +53,8 @@ object L2CAPController {
         mContext?.getSystemService(AudioManager::class.java)
     }
     private lateinit var mPrefsBridge: YukiHookPrefsBridge
+
+//    private lateinit var mAirPodsInstance: AirPodsInstance
 
     private var scanToken: ScanToken? = null
     var routes: List<MediaRoute2Info> = listOf()
@@ -65,6 +70,7 @@ object L2CAPController {
     lateinit var currentEarDetectionParams: EarDetectionParams
     lateinit var currentBatteryParams: BatteryParams
     private var currentAnc: Int = 1
+    lateinit var currentPodsInfo: AACPManager.Companion.AirPodsInformation
 
     // Function toggle
     private var earDetection = true
@@ -87,7 +93,7 @@ object L2CAPController {
     }
 
     private fun changeUIAncStatus(status: Int) {
-        if (status < 1 || status > 4) {
+        if (status !in 1..4) {
             // ignore invalid param
             return
         }
@@ -130,6 +136,8 @@ object L2CAPController {
 
                 changeUIAncStatus(currentAnc)
                 Intent(HyperPodsAction.ACTION_PODS_CONNECTED).apply {
+                    if (this@L2CAPController::currentPodsInfo.isInitialized)
+                        this.putExtra("device_info", currentPodsInfo)
                     this.putExtra("device_name", mDevice.name)
                     mContext?.sendBroadcast(this)
                 }
@@ -202,19 +210,19 @@ object L2CAPController {
     @OptIn(ExperimentalStdlibApi::class)
     fun handleBatteryChanged(packet: ByteArray) {
         val batteries = AirPodsNotifications.BatteryNotification.getBattery()
-        val left = PodParams(
+        val left = PodBatteryParams(
             batteries[0].level,
             batteries[0].status == BatteryStatus.CHARGING,
             batteries[0].status != BatteryStatus.DISCONNECTED,
             batteries[0].status
         )
-        val right = PodParams(
+        val right = PodBatteryParams(
             batteries[1].level,
             batteries[1].status == BatteryStatus.CHARGING,
             batteries[1].status != BatteryStatus.DISCONNECTED,
             batteries[1].status
         )
-        val case = PodParams(
+        val case = PodBatteryParams(
             batteries[2].level,
             batteries[2].status == BatteryStatus.CHARGING,
             batteries[2].status != BatteryStatus.DISCONNECTED,
@@ -289,6 +297,14 @@ object L2CAPController {
                     mPrefsBridge.getInt(key, 0)
                 )
             }
+
+            HyperPodsPrefsKey.EAR_DETECTION -> {
+                earDetection = mPrefsBridge.getBoolean(key, true)
+            }
+
+            HyperPodsPrefsKey.EAR_DETECTION_SWITCH_SPEAKER -> {
+                disconnectAudio = mPrefsBridge.getBoolean(key, true)
+            }
         }
     }
 
@@ -346,6 +362,81 @@ object L2CAPController {
         scanToken = null
     }
 
+    private val packetCallback = object : AACPManager.PacketCallback {
+        override fun onBatteryInfoReceived(batteryInfo: ByteArray) {
+            AirPodsNotifications.BatteryNotification.setBattery(batteryInfo)
+            handleBatteryChanged(batteryInfo)
+        }
+
+        override fun onEarDetectionReceived(earDetection: ByteArray) {
+            AirPodsNotifications.EarDetection.setStatus(earDetection)
+            handleInEarStatusChanged(AirPodsNotifications.EarDetection.status)
+        }
+
+        override fun onConversationAwarenessReceived(conversationAwareness: ByteArray) {
+            AirPodsNotifications.ConversationalAwarenessNotification.setData(conversationAwareness)
+            Log.i(TAG, "Conversation Awareness: ${AirPodsNotifications.ConversationalAwarenessNotification.status}")
+        }
+
+        override fun onControlCommandReceived(controlCommand: ByteArray) {
+            val command = AACPManager.ControlCommand.fromByteArray(controlCommand)
+            if (command.identifier == AACPManager.Companion.ControlCommandIdentifiers.LISTENING_MODE.value) {
+                AirPodsNotifications.ANC.setStatus(byteArrayOf(command.value.takeIf { it.isNotEmpty() }?.get(0) ?: 0x00.toByte()))
+                currentAnc = AirPodsNotifications.ANC.status
+                changeUIAncStatus(currentAnc)
+            }
+        }
+
+        override fun onDeviceInformationReceived(deviceInformation: AACPManager.Companion.AirPodsInformation) {
+            Log.i(TAG, "Device Information: $deviceInformation")
+            currentPodsInfo = deviceInformation
+            Intent(HyperPodsAction.ACTION_PODS_CONNECTED).apply {
+                this.putExtra("device_info", deviceInformation)
+                this.putExtra("device_name", mDevice.name)
+                mContext?.sendBroadcast(this)
+            }
+        }
+
+        override fun onHeadTrackingReceived(headTracking: ByteArray) {
+//            TODO("Not yet implemented")
+        }
+
+        override fun onUnknownPacketReceived(packet: ByteArray) {
+
+        }
+
+        override fun onProximityKeysReceived(proximityKeys: ByteArray) {
+//            TODO("Not yet implemented")
+        }
+
+        override fun onStemPressReceived(stemPress: ByteArray) {
+
+        }
+
+        override fun onAudioSourceReceived(audioSource: ByteArray) {
+//            TODO("Not yet implemented")
+        }
+
+        override fun onOwnershipChangeReceived(owns: Boolean) {
+//            TODO("Not yet implemented")
+        }
+
+        override fun onConnectedDevicesReceived(connectedDevices: List<AACPManager.Companion.ConnectedDevice>) {
+//            TODO("Not yet implemented")
+        }
+
+        override fun onOwnershipToFalseRequest(
+            sender: String,
+            reasonReverseTapped: Boolean
+        ) {
+//            TODO("Not yet implemented")
+        }
+
+        override fun onShowNearbyUI(sender: String) {
+
+        }
+    }
+
     fun connectPod(context: Context, device: BluetoothDevice, prefsBridge: YukiHookPrefsBridge) {
         mContext = context
         mDevice = device
@@ -360,11 +451,6 @@ object L2CAPController {
             this.addAction(HyperPodsAction.ACTION_GET_PODS_MAC)
             this.addAction(HyperPodsAction.ACTION_PODS_SETTINGS_CHANGED)
         }, Context.RECEIVER_EXPORTED)
-
-        Intent(HyperPodsAction.ACTION_PODS_CONNECTED).apply {
-            this.putExtra("device_name", device.name)
-            context.sendBroadcast(this)
-        }
 
         MediaControl.mContext = mContext
         mediaRouter = MediaRouter2.getInstance(mContext!!)
@@ -400,14 +486,14 @@ object L2CAPController {
 
 
             Log.d(TAG, "connected!")
-            socket.outputStream.write(Enums.HANDSHAKE.value)
-            socket.outputStream.flush()
+            val aacpManager = AACPManager(socket)
+            aacpManager.setPacketCallback(packetCallback)
+            aacpManager.sendDataPacket(aacpManager.createHandshakePacket())
+            aacpManager.sendPacket(aacpManager.createHandshakePacket())
             delay(200)
-            socket.outputStream.write(Enums.SET_SPECIFIC_FEATURES.value)
-            socket.outputStream.flush()
+            aacpManager.sendSetFeatureFlagsPacket()
             delay(200)
-            socket.outputStream.write(Enums.REQUEST_NOTIFICATIONS.value)
-            socket.outputStream.flush()
+            aacpManager.sendNotificationRequest()
             delay(200)
             while (socket.isConnected) {
                 val buffer = ByteArray(1024)
@@ -416,7 +502,8 @@ object L2CAPController {
                     Log.v(TAG, "bytesRead $bytesRead!")
                 }
                 if (bytesRead > 0) {
-                    handleAirPodsPacket(buffer.copyOfRange(0, bytesRead))
+                    aacpManager.receivePacket(buffer.copyOfRange(0, bytesRead))
+//                    handleAirPodsPacket(buffer.copyOfRange(0, bytesRead))
                 } else if (bytesRead == -1) {
                     // disconnected
                     socket.close()
@@ -461,9 +548,6 @@ object L2CAPController {
 
     fun setANCMode(mode: Int) {
         Log.d(TAG, "setANCMode: $mode")
-
-        // Set Off listening mode for AirPods Pro 2 to enable OFF mode
-        setOffListeningMode(mode == 1)
 
         when (mode) {
             1 -> {

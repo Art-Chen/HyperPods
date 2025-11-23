@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="pod_info">耳机信息</string>
-    <string name="about">关于 HyperPods</string>
+    <string name="about_hyperpods">关于 HyperPods</string>
+    <string name="about">关于</string>
     <string name="ear_detection_title">自动人耳检测</string>
     <string name="ear_detection_summary">自动暂停或播放当前正在播放的内容</string>
     <string name="auto_switch_to_speaker_title">自动切换到扬声器</string>
@@ -16,4 +17,40 @@
     <string name="waiting_for_pod">等待AirPods连接...</string>
     <string name="donate">给我来杯奶茶~</string>
     <string name="donate_detail">跳转到 “爱发电”</string>
+    <string name="press_and_hold_settings">按住AirPods</string>
+    <string name="misc_title">杂项</string>
+    <string name="conversational_awareness_title">会话感知</string>
+    <string name="audio_title">音频</string>
+    <string name="conversational_awareness_summary">当您开始和别人交谈时降低媒体音量并减少背景噪音</string>
+    <string name="personlized_volume_title">个性化音量</string>
+    <string name="personlized_volume_summary">根据所处环境调整媒体音量</string>
+    <string name="loud_sound_reduction_title">降低高音量</string>
+    <string name="loud_sound_reduction_summary">降低所处环境中的高音量</string>
+    <string name="adjust_volume_by_swiper_title">音频控制</string>
+    <string name="adjust_volume_by_swiper_summary">将拇指放在任一 AirPod 耳机柄上，然后用食指在触控操作区域上向上或向下轻扫以调整音量</string>
+    <string name="adaptive_audio_title">自适应降噪调节</string>
+    <string name="less_noise">更少噪音</string>
+    <string name="more_noise">更多噪音</string>
+    <string name="left_pod">"左"</string>
+    <string name="right_pod">"右"</string>
+    <string name="set_noise_mode">噪声控制</string>
+    <string name="set_voice_assist">呼出小爱同学</string>
+    <string name="case_charging_sound_title">启用充电盒声音</string>
+    <string name="product_name">型号名称</string>
+    <string name="model_name">型号</string>
+    <string name="serial_num">序列号</string>
+    <string name="version_num">版本</string>
+    <string name="product_manufacturer">制造商</string>
+    <string name="hw_version_num">硬件版本</string>
+    <string name="name_title">名称</string>
+    <string name="rename_title">重命名此设备</string>
+    <string name="microphone">麦克风</string>
+    <!-- Microphone Option -->
+    <string name="microphone_auto">自动</string>
+    <string name="microphone_left">始终左 AirPod</string>
+    <string name="microphone_right">始终右 AirPod</string>
+
+    <string name="listen_mode_summary">按住耳机把柄以在选定的噪声控制模式中循环</string>
+    <string name="noise_cancellation_single_airpod">单 AirPod 时降噪</string>
+    <string name="noise_cancellation_single_airpod_description">允许仅佩戴单只AirPod时使AirPods进入降噪模式</string>
 </resources>

@@ -11,11 +11,7 @@ import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.type.android.ContextClass
 import de.robv.android.xposed.XposedHelpers
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import moe.chenxy.hyperpods.utils.miuiStrongToast.data.HyperPodsAction
+import moe.chenxy.hyperpods.utils.data.HyperPodsAction
 
 object DeviceCardHook : YukiBaseHooker() {
     @Volatile

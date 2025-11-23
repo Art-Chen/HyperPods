@@ -1,7 +1,8 @@
 <resources>
     <string name="app_name">HyperPods AAP</string>
     <string name="pod_info">Pod Info</string>
-    <string name="about">About HyperPods</string>
+    <string name="about_hyperpods">About HyperPods</string>
+    <string name="about">About</string>
     <string name="ear_detection_title">Ear Detection</string>
     <string name="ear_detection_summary">Auto pause or play the info that currently playing</string>
     <string name="auto_switch_to_speaker_title">Auto Switch to Speaker</string>
@@ -16,4 +17,41 @@
     <string name="waiting_for_pod">Waiting for AirPods Connection…</string>
     <string name="donate">Buy me a coffee</string>
     <string name="donate_detail">Go AFDIAN</string>
+    <string name="press_and_hold_settings"><![CDATA[Press & Hold]]></string>
+    <string name="misc_title">Misc</string>
+    <string name="conversational_awareness_title">Conversational Awareness</string>
+    <string name="audio_title">Audio</string>
+    <string name="conversational_awareness_summary">Lowers media volume and reduces background noise when you start speaking to other people</string>
+    <string name="personlized_volume_title">Personalized Volume</string>
+    <string name="personlized_volume_summary">Adjusts the volume of media in response to your environment</string>
+    <string name="loud_sound_reduction_title">Loud Sound Reduction</string>
+    <string name="loud_sound_reduction_summary">Reduces loud sounds you are exposed to</string>
+    <string name="adjust_volume_by_swiper_title">Volume Control</string>
+    <string name="adjust_volume_by_swiper_summary">Adjust the volume by swiping up or down on the sensor located on the AirPods Pro stem</string>
+    <string name="adaptive_audio_title">Adaptive Audio</string>
+    <string name="less_noise">Less Noise</string>
+    <string name="more_noise">More Noise</string>
+    <string name="left_pod">Left</string>
+    <string name="right_pod">Right</string>
+    <string name="set_noise_mode">Noise Control</string>
+    <string name="set_voice_assist">Voice Assist</string>
+    <string name="case_charging_sound_title">Case Charging Sound</string>
+    <string name="product_name">Product Name</string>
+    <string name="model_name">Model</string>
+    <string name="serial_num">Serial Number</string>
+    <string name="version_num">Version</string>
+    <string name="product_manufacturer">Manufacturer</string>
+    <string name="hw_version_num">Hardware Version</string>
+    <string name="name_title">Name</string>
+    <string name="rename_title">Rename this device</string>
+    <string name="microphone">Microphone</string>
+
+    <!-- Microphone Option -->
+    <string name="microphone_auto">Automatic</string>
+    <string name="microphone_left">Always Left</string>
+    <string name="microphone_right">Always Right</string>
+
+    <string name="listen_mode_summary">Press and hold the stem to cycle between the selected listening modes.</string>
+    <string name="noise_cancellation_single_airpod">Noise Cancellation with Single AirPod</string>
+    <string name="noise_cancellation_single_airpod_description">Allow AirPods to be put in noise cancellation mode when only one AirPod is in your ear.</string>
 </resources>
