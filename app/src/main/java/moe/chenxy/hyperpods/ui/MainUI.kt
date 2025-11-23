@@ -144,6 +144,7 @@ fun MainUI() {
     val noiseCancellationSingleAirPod = remember { mutableStateOf(context.prefs().getBoolean(HyperPodsPrefsKey.SINGLE_POD_ANC, false)) }
     val canShowDetailPage = remember { mutableStateOf(false) }
     val ancMode = remember { mutableStateOf(NoiseControlMode.OFF) }
+    val realAncMode = remember { mutableStateOf(NoiseControlMode.OFF) }
     val microphoneMode = remember { mutableStateOf(0) }
     val init = remember { mutableStateOf(false) }
 
@@ -153,6 +154,8 @@ fun MainUI() {
                 HyperPodsAction.ACTION_PODS_ANC_CHANGED -> {
                     restoreAncJob?.cancel()
                     ancMode.value =
+                        NoiseControlMode.entries.toTypedArray()[p1.getIntExtra("status", 1) - 1]
+                    realAncMode.value =
                         NoiseControlMode.entries.toTypedArray()[p1.getIntExtra("status", 1) - 1]
                 }
 
@@ -200,18 +203,17 @@ fun MainUI() {
 
     fun setAncMode(mode: NoiseControlMode) {
         if (restoreAncJob?.isActive == true) {
-            return
+            restoreAncJob?.cancel()
         }
         Intent(HyperPodsAction.ACTION_ANC_SELECT).apply {
             this.putExtra("status", mode.ordinal + 1)
             context.sendBroadcast(this)
         }
         restoreAncJob = CoroutineScope(Dispatchers.Default).launch {
-            val oldAncMode = ancMode.value
             ancMode.value = mode
             // Wait the AirPods return the new ANC status, if timeout then restore the ui to old ANC mode
             delay(3000)
-            ancMode.value = oldAncMode
+            ancMode.value = realAncMode.value
         }
     }
 
