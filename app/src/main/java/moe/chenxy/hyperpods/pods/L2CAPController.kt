@@ -593,116 +593,12 @@ object L2CAPController {
     fun setANCMode(mode: Int) {
         Log.d(TAG, "setANCMode: $mode")
 
-        when (mode) {
-            1 -> {
-                socket.outputStream?.write(Enums.NOISE_CANCELLATION_OFF.value)
-            }
-            2 -> {
-                socket.outputStream?.write(Enums.NOISE_CANCELLATION_ON.value)
-            }
-            3 -> {
-                socket.outputStream?.write(Enums.NOISE_CANCELLATION_TRANSPARENCY.value)
-            }
-            4 -> {
-                socket.outputStream?.write(Enums.NOISE_CANCELLATION_ADAPTIVE.value)
-            }
-        }
-        socket.outputStream?.flush()
-    }
-
-    fun setCAEnabled(enabled: Boolean) {
-        socket.outputStream?.write(if (enabled) Enums.SET_CONVERSATION_AWARENESS_ON.value else Enums.SET_CONVERSATION_AWARENESS_OFF.value)
-        socket.outputStream?.flush()
-    }
-
-    fun setOffListeningMode(enabled: Boolean) {
-        socket.outputStream?.write(byteArrayOf(0x04, 0x00 ,0x04, 0x00, 0x09, 0x00, 0x34, if (enabled) 0x01 else 0x02, 0x00, 0x00, 0x00))
-        socket.outputStream?.flush()
-    }
-
-    fun setCaseChargingSounds(enabled: Boolean) {
-        val bytes = byteArrayOf(0x12, 0x3a, 0x00, 0x01, 0x00, 0x08, if (enabled) 0x00 else 0x01)
-        socket.outputStream?.write(bytes)
-        socket.outputStream?.flush()
-    }
-
-    fun setAdaptiveStrength(strength: Int) {
-        val bytes =
-            byteArrayOf(
-                0x04,
-                0x00,
-                0x04,
-                0x00,
-                0x09,
-                0x00,
-                0x2E,
-                strength.toByte(),
-                0x00,
-                0x00,
-                0x00
+        if (mode in 1..4) {
+            aacpManager?.sendControlCommand(
+                AACPManager.Companion.ControlCommandIdentifiers.LISTENING_MODE.value,
+                mode
             )
-        sendPacket(bytes)
-    }
-
-    fun setPressSpeed(speed: Int) {
-        // 0x00 = default, 0x01 = slower, 0x02 = slowest
-        val bytes =
-            byteArrayOf(0x04, 0x00, 0x04, 0x00, 0x09, 0x00, 0x17, speed.toByte(), 0x00, 0x00, 0x00)
-        sendPacket(bytes)
-    }
-
-    fun setPressAndHoldDuration(speed: Int) {
-        // 0 - default, 1 - slower, 2 - slowest
-        val bytes =
-            byteArrayOf(0x04, 0x00, 0x04, 0x00, 0x09, 0x00, 0x18, speed.toByte(), 0x00, 0x00, 0x00)
-        sendPacket(bytes)
-    }
-
-    fun setVolumeSwipeSpeed(speed: Int) {
-        // 0 - default, 1 - longer, 2 - longest
-        val bytes =
-            byteArrayOf(0x04, 0x00, 0x04, 0x00, 0x09, 0x00, 0x23, speed.toByte(), 0x00, 0x00, 0x00)
-        sendPacket(bytes)
-    }
-
-    fun setNoiseCancellationWithOnePod(enabled: Boolean) {
-        val bytes = byteArrayOf(
-            0x04,
-            0x00,
-            0x04,
-            0x00,
-            0x09,
-            0x00,
-            0x1B,
-            if (enabled) 0x01 else 0x02,
-            0x00,
-            0x00,
-            0x00
-        )
-        sendPacket(bytes)
-    }
-
-    fun setVolumeControl(enabled: Boolean) {
-        val bytes = byteArrayOf(
-            0x04,
-            0x00,
-            0x04,
-            0x00,
-            0x09,
-            0x00,
-            0x25,
-            if (enabled) 0x01 else 0x02,
-            0x00,
-            0x00,
-            0x00
-        )
-        sendPacket(bytes)
-    }
-
-    fun setToneVolume(volume: Int) {
-        val bytes =
-            byteArrayOf(0x04, 0x00, 0x04, 0x00, 0x09, 0x00, 0x1F, volume.toByte(), 0x50, 0x00, 0x00)
-        sendPacket(bytes)
+        }
     }
 
     fun disconnectAudio(context: Context, device: BluetoothDevice?) {
@@ -778,24 +674,6 @@ object L2CAPController {
         setRegularBatteryLevel(lastTempBatt)
     }
 
-    fun setName(name: String) {
-        val nameBytes = name.toByteArray()
-        val bytes = byteArrayOf(0x04, 0x00, 0x04, 0x00, 0x1a, 0x00, 0x01,
-            nameBytes.size.toByte(), 0x00) + nameBytes
-        socket.outputStream?.write(bytes)
-        socket.outputStream?.flush()
-    }
-
-    fun setPersonVolumeEnabled(enabled: Boolean) {
-        var hex = "04 00 04 00 09 00 26 ${if (enabled) "01" else "02"} 00 00 00"
-        var bytes = hex.split(" ").map { it.toInt(16).toByte() }.toByteArray()
-        sendPacket(bytes)
-        hex =
-            "04 00 04 00 17 00 00 00 10 00 12 00 08 E${if (enabled) "6" else "5"} 05 10 02 42 0B 08 50 10 02 1A 05 02 ${if (enabled) "32" else "00"} 00 00 00"
-        bytes = hex.split(" ").map { it.toInt(16).toByte() }.toByteArray()
-        sendPacket(bytes)
-    }
-
     fun setLoudSoundReduction(enabled: Boolean) {
         val hex = "52 1B 00 0${if (enabled) "1" else "0"}"
         val bytes = hex.split(" ").map { it.toInt(16).toByte() }.toByteArray()
@@ -805,49 +683,5 @@ object L2CAPController {
     fun setRegularBatteryLevel(level: Int) {
         val service = XposedHelpers.getObjectField(mContext, "mAdapterService")
         XposedHelpers.callMethod(service, "setBatteryLevel", mDevice, level, false)
-    }
-
-    fun findChangedIndex(oldArray: BooleanArray, newArray: BooleanArray): Int {
-        for (i in oldArray.indices) {
-            if (oldArray[i] != newArray[i]) {
-                return i
-            }
-        }
-        return -1
-    }
-
-    fun updateLongPress(left: Int, right: Int?) {
-
-    }
-
-    fun updateAncLongPress(
-        oldLongPressArray: BooleanArray,
-        newLongPressArray: BooleanArray,
-    ) {
-        if (oldLongPressArray.contentEquals(newLongPressArray)) {
-            return
-        }
-        val oldModes = mutableSetOf<LongPressMode>()
-        val newModes = mutableSetOf<LongPressMode>()
-
-        if (oldLongPressArray[0]) oldModes.add(LongPressMode.OFF)
-        if (oldLongPressArray[1]) oldModes.add(LongPressMode.ANC)
-        if (oldLongPressArray[2]) oldModes.add(LongPressMode.TRANSPARENCY)
-        if (oldLongPressArray[3]) oldModes.add(LongPressMode.ADAPTIVE)
-
-        if (newLongPressArray[0]) newModes.add(LongPressMode.OFF)
-        if (newLongPressArray[1]) newModes.add(LongPressMode.ANC)
-        if (newLongPressArray[2]) newModes.add(LongPressMode.TRANSPARENCY)
-        if (newLongPressArray[3]) newModes.add(LongPressMode.ADAPTIVE)
-
-        val changedIndex = findChangedIndex(oldLongPressArray, newLongPressArray)
-        if (changedIndex == -1) return
-
-        val newEnabled = newLongPressArray[changedIndex]
-
-        val packet = determinePacket(changedIndex, newEnabled, oldModes, newModes)
-        packet?.let {
-            sendPacket(it)
-        }
     }
 }
