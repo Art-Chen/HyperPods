@@ -222,11 +222,7 @@ fun MainUI() {
             putBoolean(HyperPodsPrefsKey.EAR_DETECTION, main)
             putBoolean(HyperPodsPrefsKey.EAR_DETECTION_SWITCH_SPEAKER, disconnect)
         }
-        Intent(HyperPodsAction.ACTION_EAR_DETECTION_SWITCH_CHANGED).apply {
-            this.putExtra("ear_detection", main)
-            this.putExtra("disconnect_audio", disconnect)
-            context.sendBroadcast(this)
-        }
+        syncToController(context = context, HyperPodsPrefsKey.EAR_DETECTION)
     }
 
     fun renameAirPods(it: String) {
@@ -235,6 +231,11 @@ fun MainUI() {
 
     fun onMicrophoneModeChange(it: Int) {
         microphoneMode.value = it
+
+        context.prefs().edit {
+            putInt(HyperPodsPrefsKey.MICROPHONE_MODE, it)
+        }
+        syncToController(context, HyperPodsPrefsKey.MICROPHONE_MODE)
     }
 
     fun onListeningModeChange(it: Byte) {
@@ -246,6 +247,8 @@ fun MainUI() {
 
     fun onNoiseCancellationSingleAirPodChange(it: Boolean) {
         noiseCancellationSingleAirPod.value = it
+
+        setBoolPrefsAndSync(context = context, prefKey = HyperPodsPrefsKey.SINGLE_POD_ANC, value = it)
     }
 
     val hazeState = remember { HazeState() }

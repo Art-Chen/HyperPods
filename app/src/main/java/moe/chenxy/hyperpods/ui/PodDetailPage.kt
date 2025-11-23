@@ -208,16 +208,16 @@ fun PodDetailPage(
                 )
             }
 
-            SmallTitle(stringResource(R.string.misc_title), modifier = titleModifier)
-            Card(
-                modifier = cardModifier
-            ) {
-                SuperSwitch(
-                    title = stringResource(R.string.case_charging_sound_title),
-                    checked = caseChargingSound,
-                    onCheckedChange = onCaseChargingSoundChange
-                )
-            }
+//            SmallTitle(stringResource(R.string.misc_title), modifier = titleModifier)
+//            Card(
+//                modifier = cardModifier
+//            ) {
+//                SuperSwitch(
+//                    title = stringResource(R.string.case_charging_sound_title),
+//                    checked = caseChargingSound,
+//                    onCheckedChange = onCaseChargingSoundChange
+//                )
+//            }
 
             // Auto Ear-Detection
             SmallTitle(stringResource(R.string.ear_detection_title), modifier = titleModifier)

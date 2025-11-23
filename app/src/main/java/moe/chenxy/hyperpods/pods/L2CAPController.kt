@@ -40,6 +40,8 @@ import moe.chenxy.hyperpods.utils.data.HyperPodsPrefsKey
 import moe.chenxy.hyperpods.utils.data.PodBatteryParams
 import java.util.concurrent.Executor
 import kotlin.collections.get
+import kotlin.experimental.or
+import kotlin.reflect.full.memberProperties
 
 @SuppressLint("MissingPermission", "StaticFieldLeak")
 object L2CAPController {
@@ -53,6 +55,8 @@ object L2CAPController {
         mContext?.getSystemService(AudioManager::class.java)
     }
     private lateinit var mPrefsBridge: YukiHookPrefsBridge
+
+    private var aacpManager: AACPManager? = null
 
 //    private lateinit var mAirPodsInstance: AirPodsInstance
 
@@ -268,34 +272,57 @@ object L2CAPController {
         setRegularBatteryLevel(lastTempBatt)
     }
 
+    fun initAllCustomSettings() {
+        val values = HyperPodsPrefsKey::class.memberProperties
+            .filter { it.returnType.classifier == String::class }
+            .map { it.getter.call(HyperPodsPrefsKey) as String }
+        for (key in values) {
+            handleUISettingsChanged(key)
+        }
+    }
+
+    fun getIdentifierValue(identifier: AACPManager.Companion.ControlCommandIdentifiers): Byte? {
+        return aacpManager?.controlCommandStatusList?.find {
+            it.identifier == identifier
+        }?.value?.takeIf { it.isNotEmpty() }?.get(0)
+    }
+
     fun handleUISettingsChanged(key: String) {
         when (key) {
             HyperPodsPrefsKey.PERSONLIZED_VOLUME -> {
-                setPersonVolumeEnabled(mPrefsBridge.getBoolean(key, false))
+                val checked = mPrefsBridge.getBoolean(key, true)
+                aacpManager?.sendControlCommand(identifier = AACPManager.Companion.ControlCommandIdentifiers.ADAPTIVE_VOLUME_CONFIG.value, value = checked)
             }
-            HyperPodsPrefsKey.CASE_CHARGING_SOUND -> {
-                setCaseChargingSounds(mPrefsBridge.getBoolean(key, true))
-            }
+//            HyperPodsPrefsKey.CASE_CHARGING_SOUND -> {
+////                aacpManager?.sendControlCommand(identifier = AACPManager.Companion.ControlCommandIdentifiers.CH.value, value = checked)
+//                setCaseChargingSounds(mPrefsBridge.getBoolean(key, true))
+//            }
             HyperPodsPrefsKey.ADAPTIVE_AUDIO_LEVEL -> {
-                setAdaptiveStrength((mPrefsBridge.getFloat(key, 0.5f) * 100).toInt())
+                val value = mPrefsBridge.getFloat(key, 0.5f)
+                aacpManager?.sendControlCommand(identifier = AACPManager.Companion.ControlCommandIdentifiers.AUTO_ANC_STRENGTH.value, value = (100 - value * 100).toInt())
             }
             HyperPodsPrefsKey.CONVERSATION_AWARENESS -> {
-                setCAEnabled(mPrefsBridge.getBoolean(key, false))
+                val checked = mPrefsBridge.getBoolean(key, true)
+                aacpManager?.sendControlCommand(identifier = AACPManager.Companion.ControlCommandIdentifiers.CONVERSATION_DETECT_CONFIG.value, value = checked)
             }
             HyperPodsPrefsKey.LOUD_SOUND_REDUCTION -> {
-                setLoudSoundReduction(mPrefsBridge.getBoolean(key, false))
+                val checked = mPrefsBridge.getBoolean(key, true)
+                // TODO: porting ATTManager from LibrePod
+                setLoudSoundReduction(checked)
             }
             HyperPodsPrefsKey.ADJUST_VOLUME_BY_SWIPER -> {
-                setVolumeControl(mPrefsBridge.getBoolean(key, false))
+                val checked = mPrefsBridge.getBoolean(key, true)
+                aacpManager?.sendControlCommand(identifier = AACPManager.Companion.ControlCommandIdentifiers.VOLUME_SWIPE_MODE.value, value = checked)
+            }
+            HyperPodsPrefsKey.LISTENING_MODE_BYTE -> {
+                val value = mPrefsBridge.getInt(key, AACPManager.Companion.ListeningMode.NC.value.toInt() or AACPManager.Companion.ListeningMode.TRANSPARENCY.value.toInt())
+                aacpManager?.sendControlCommand(identifier = AACPManager.Companion.ControlCommandIdentifiers.LISTENING_MODE_CONFIGS.value, value = value.toByte())
             }
             HyperPodsPrefsKey.LONG_PRESS_MODE_LEFT -> {
-                updateLongPress(mPrefsBridge.getInt(key, 0), null)
+                // TODO: Implement launch Xiaoai & enable custom hold action
             }
             HyperPodsPrefsKey.LONG_PRESS_MODE_RIGHT -> {
-                updateLongPress(
-                    mPrefsBridge.getInt(HyperPodsPrefsKey.LONG_PRESS_MODE_LEFT, 0),
-                    mPrefsBridge.getInt(key, 0)
-                )
+                // TODO: Implement launch Xiaoai & enable custom hold action
             }
 
             HyperPodsPrefsKey.EAR_DETECTION -> {
@@ -304,6 +331,22 @@ object L2CAPController {
 
             HyperPodsPrefsKey.EAR_DETECTION_SWITCH_SPEAKER -> {
                 disconnectAudio = mPrefsBridge.getBoolean(key, true)
+            }
+
+            HyperPodsPrefsKey.SINGLE_POD_ANC -> {
+                val checked = mPrefsBridge.getBoolean(key, true)
+                aacpManager?.sendControlCommand(identifier = AACPManager.Companion.ControlCommandIdentifiers.ONE_BUD_ANC_MODE.value, value = checked)
+            }
+
+            HyperPodsPrefsKey.MICROPHONE_MODE -> {
+                val value = mPrefsBridge.getInt(key, 0)
+                val byteValue = when (value) {
+                    0 -> 0x00
+                    2 -> 0x01
+                    1 -> 0x02
+                    else -> 0x00
+                }
+                aacpManager?.sendControlCommand(identifier = AACPManager.Companion.ControlCommandIdentifiers.MIC_MODE.value, value = byteValue)
             }
         }
     }
@@ -486,14 +529,14 @@ object L2CAPController {
 
 
             Log.d(TAG, "connected!")
-            val aacpManager = AACPManager(socket)
-            aacpManager.setPacketCallback(packetCallback)
-            aacpManager.sendDataPacket(aacpManager.createHandshakePacket())
-            aacpManager.sendPacket(aacpManager.createHandshakePacket())
+            aacpManager = AACPManager(socket)
+            aacpManager!!.setPacketCallback(packetCallback)
+            aacpManager!!.sendDataPacket(aacpManager!!.createHandshakePacket())
+            aacpManager!!.sendPacket(aacpManager!!.createHandshakePacket())
             delay(200)
-            aacpManager.sendSetFeatureFlagsPacket()
+            aacpManager!!.sendSetFeatureFlagsPacket()
             delay(200)
-            aacpManager.sendNotificationRequest()
+            aacpManager!!.sendNotificationRequest()
             delay(200)
             while (socket.isConnected) {
                 val buffer = ByteArray(1024)
@@ -502,7 +545,7 @@ object L2CAPController {
                     Log.v(TAG, "bytesRead $bytesRead!")
                 }
                 if (bytesRead > 0) {
-                    aacpManager.receivePacket(buffer.copyOfRange(0, bytesRead))
+                    aacpManager!!.receivePacket(buffer.copyOfRange(0, bytesRead))
 //                    handleAirPodsPacket(buffer.copyOfRange(0, bytesRead))
                 } else if (bytesRead == -1) {
                     // disconnected
@@ -531,6 +574,7 @@ object L2CAPController {
 //        disconnectedAudio = false
         mContext = null
         MediaControl.mContext = null
+        aacpManager = null
     }
 
     fun sendPacket(packet: String) {
