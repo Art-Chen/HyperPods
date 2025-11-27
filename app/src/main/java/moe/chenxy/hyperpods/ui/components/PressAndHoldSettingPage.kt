@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
@@ -200,7 +201,7 @@ fun PressAndHoldSettingPage(
 
         val animateY by animateDpAsState(
             targetValue = targetTranslationY,
-            animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioNoBouncy),
+            animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioLowBouncy),
             label = "ScaleAnimation"
         )
 
@@ -242,7 +243,7 @@ fun PressAndHoldSettingPage(
         Box(
             modifier = Modifier
                 .alpha(animateAlpha)
-                .padding(top = animateY)
+                .offset(y = animateY)
                 .graphicsLayer(scaleX = animateScale, scaleY = animateScale)
         ) {
             Card(
@@ -277,7 +278,7 @@ fun PressAndHoldSettingPage(
         }
         Text(stringResource(R.string.listen_mode_summary), modifier = Modifier.padding(16.dp).alpha(animateAlpha).graphicsLayer(scaleX = animateScale, scaleY = animateScale), color = MiuixTheme.colorScheme.secondary, fontSize = 12.sp)
 
-        Spacer(modifier = Modifier.height(200.dp - animateY))
+        Spacer(modifier = Modifier.height(200.dp))
     }
 }
 
