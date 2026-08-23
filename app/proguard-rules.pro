@@ -21,6 +21,8 @@
 #-renamesourcefileattribute SourceFile
 
 # Kotlin
+-dontwarn java.lang.reflect.AnnotatedType
+
 -assumenosideeffects class kotlin.jvm.internal.Intrinsics {
     public static void check*(...);
     public static void throw*(...);

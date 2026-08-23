@@ -2,6 +2,7 @@ package moe.chenxy.hyperpods.pods
 
 import android.annotation.SuppressLint
 import android.app.StatusBarManager
+import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
@@ -17,8 +18,6 @@ import android.media.MediaRouter2.ScanToken
 import android.media.RouteDiscoveryPreference
 import android.os.ParcelUuid
 import android.util.Log
-import com.highcapable.yukihookapi.hook.type.java.BooleanType
-import com.highcapable.yukihookapi.hook.type.java.IntType
 import com.highcapable.yukihookapi.hook.xposed.prefs.YukiHookPrefsBridge
 import de.robv.android.xposed.XposedHelpers
 import kotlinx.coroutines.CoroutineScope
@@ -502,28 +501,62 @@ object L2CAPController {
         val uuid = ParcelUuid.fromString("74ec2172-0bad-4d01-8f77-997b2be0722a")
 
         fun getBtSocket(): BluetoothSocket {
-            try {
-                return BluetoothSocket::class.java.getDeclaredConstructor(IntType, BooleanType, BooleanType,
-                    BluetoothDevice::class.java, IntType,
-                    ParcelUuid::class.java).newInstance(3, true, true, device, 0x1001, uuid) as BluetoothSocket
-            } catch (_: NoSuchMethodException) {
-                Log.i(TAG, "get bt socket method failed, try android Baklava method")
-                return BluetoothSocket::class.java.getDeclaredConstructor(BluetoothDevice::class.java, IntType, BooleanType, BooleanType,
-                    IntType, ParcelUuid::class.java).newInstance(device, 3, true, true, 0x1001, uuid) as BluetoothSocket
-            }
+            // Android 17 removed the six-argument convenience constructor on this
+            // build and added BluetoothAdapter before BluetoothDevice. Find its
+            // extended equivalent while keeping TYPE_L2CAP (3):
+            // BluetoothDevice.createL2capChannel() now creates TYPE_LE (4).
+            val prefix = arrayOf(
+                BluetoothAdapter::class.java,
+                BluetoothDevice::class.java,
+                Int::class.javaPrimitiveType,
+                Boolean::class.javaPrimitiveType,
+                Boolean::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType,
+                ParcelUuid::class.java,
+            )
+            val constructor = BluetoothSocket::class.java.declaredConstructors
+                .filter { it.parameterTypes.size >= prefix.size }
+                .filter { candidate ->
+                    prefix.indices.all { candidate.parameterTypes[it] == prefix[it] }
+                }
+                .minByOrNull { it.parameterCount }
+                ?: throw NoSuchMethodException(
+                    "No compatible classic L2CAP BluetoothSocket constructor: " +
+                        BluetoothSocket::class.java.declaredConstructors.joinToString { it.toString() }
+                )
+
+            val args = constructor.parameterTypes.mapIndexed { index, type ->
+                when (index) {
+                    0 -> BluetoothAdapter.getDefaultAdapter()
+                    1 -> device
+                    2 -> 3 // BluetoothSocket.TYPE_L2CAP (classic BR/EDR)
+                    3, 4 -> true // authenticated and encrypted
+                    5 -> 0x1001 // AirPods AAP PSM
+                    6 -> uuid
+                    else -> when (type) {
+                        Boolean::class.javaPrimitiveType -> false
+                        Int::class.javaPrimitiveType -> 0
+                        Long::class.javaPrimitiveType -> 0L
+                        String::class.java -> "HyperPods"
+                        android.content.AttributionSource::class.java -> context.attributionSource
+                        else -> null
+                    }
+                }
+            }.toTypedArray()
+            constructor.isAccessible = true
+            Log.i(TAG, "using BluetoothSocket constructor: $constructor")
+            return constructor.newInstance(*args) as BluetoothSocket
         }
 
         CoroutineScope(Dispatchers.IO).launch {
             delay(500)
-            socket = getBtSocket()
-
-            Log.d(TAG, "connecting AirPods!")
             try {
+                socket = getBtSocket()
+                Log.d(TAG, "connecting AirPods!")
                 socket.connect()
             } catch (e: Exception) {
-                Log.e(TAG, "failed to connect to socket, retry!", e)
-                connectPod(context, mDevice, mPrefsBridge)
-
+                Log.e(TAG, "failed to connect to AirPods socket; stop retrying", e)
+                runCatching { if (::socket.isInitialized) socket.close() }
                 return@launch
             }
 
@@ -681,7 +714,18 @@ object L2CAPController {
     }
 
     fun setRegularBatteryLevel(level: Int) {
-        val service = XposedHelpers.getObjectField(mContext, "mAdapterService")
-        XposedHelpers.callMethod(service, "setBatteryLevel", mDevice, level, false)
+        try {
+            // A2dpService no longer owns mAdapterService on Android 17; it is kept
+            // by the ConnectableProfile superclass and exposed through this method.
+            val service = try {
+                XposedHelpers.callMethod(mContext, "getAdapterService")
+            } catch (_: Throwable) {
+                XposedHelpers.getObjectField(mContext, "mAdapterService")
+            }
+            XposedHelpers.callMethod(service, "setBatteryLevel", mDevice, level, false)
+        } catch (error: Throwable) {
+            // Battery mirroring is cosmetic and must never take down Bluetooth.
+            Log.e(TAG, "unable to mirror battery level to AdapterService", error)
+        }
     }
 }
