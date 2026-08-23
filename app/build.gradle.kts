@@ -25,8 +25,8 @@ android {
         applicationId = "moe.chenxy.hyperpods"
         minSdk = 35
         targetSdk = 36
-        versionCode = 5
-        versionName = "2.0.2-AAP-W-HyperOS3"
+        versionCode = 6
+        versionName = "3.0.0-AAP-W-HyperOS4"
         externalNativeBuild {
             cmake {
                 cppFlags += ""
@@ -36,7 +36,8 @@ android {
 
     buildTypes {
         debug {
-            isDebuggable = true
+            // Keep test APKs installable without HyperOS's debuggable-app warning.
+            isDebuggable = false
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles(

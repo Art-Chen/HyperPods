@@ -29,6 +29,12 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
     # List C/C++ source files with relative paths to this CMakeLists.txt.
     hyperpods.cpp)
 
+# Android 15+ devices can use a 16 KiB memory page size. Align every LOAD
+# segment accordingly so the module can be loaded on both 4 KiB and 16 KiB
+# page-size devices.
+target_link_options(${CMAKE_PROJECT_NAME} PRIVATE
+    "-Wl,-z,max-page-size=16384")
+
 # Specifies libraries CMake should link to your target library. You
 # can link libraries from various origins, such as libraries defined in this
 # build script, prebuilt third-party libraries, or Android system libraries.

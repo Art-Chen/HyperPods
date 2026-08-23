@@ -25,16 +25,26 @@ object SystemUIPluginHook : YukiBaseHooker() {
             name = "loadPlugin"
         }.hook {
             after {
-                val pkgName = XposedHelpers.callMethod(this.instance, "getPackage")
+                val pkgName = runCatching {
+                    XposedHelpers.callMethod(this.instance, "getPackageName") as String
+                }.getOrElse {
+                    // HyperOS 3 and older SystemUI plugin framework.
+                    XposedHelpers.callMethod(this.instance, "getPackage") as String
+                }
                 if (pkgName == "miui.systemui.plugin") {
-                    val factory =
-                        XposedHelpers.getObjectField(this.instance, "mPluginFactory")
-                    val clsLoader = XposedHelpers.callMethod(
-                        XposedHelpers.getObjectField(
-                            factory,
-                            "mClassLoaderFactory"
-                        ), "get"
-                    ) as ClassLoader
+                    val clsLoader = runCatching {
+                        // HyperOS 4 stores the loaded plugin context in PluginData.
+                        val pluginData = XposedHelpers.getObjectField(this.instance, "pluginData")
+                        val pluginContext = XposedHelpers.getObjectField(pluginData, "context")
+                        XposedHelpers.callMethod(pluginContext, "getClassLoader") as ClassLoader
+                    }.getOrElse {
+                        // HyperOS 3 and older SystemUI plugin framework.
+                        val factory = XposedHelpers.getObjectField(this.instance, "mPluginFactory")
+                        XposedHelpers.callMethod(
+                            XposedHelpers.getObjectField(factory, "mClassLoaderFactory"),
+                            "get"
+                        ) as ClassLoader
+                    }
                     if (pluginLoaderClassLoader != clsLoader) {
                         Log.i(
                             "Art_Chen",
